@@ -58,9 +58,20 @@ say "2. Repository Debian contrib"
 if apt-cache policy ttf-mscorefonts-installer 2>/dev/null | grep -q 'Candidate: (none)' \
 	|| ! apt-cache policy ttf-mscorefonts-installer 2>/dev/null | grep -q 'Candidate'; then
 	warn "Il pacchetto dei font usato dall'installer di PiFire non è disponibile: serve il componente 'contrib'."
-	if [[ -f /etc/apt/sources.list ]] && ask "Aggiungo 'contrib' alle righe Debian di /etc/apt/sources.list (con backup)?"; then
-		cp /etc/apt/sources.list /etc/apt/sources.list.pifire.bak
-		sed -i -E '/^deb(-src)? .*debian.* main/{/ contrib/! s/ main/ main contrib/}' /etc/apt/sources.list
+	# Debian 13 (trixie) uses deb822 files in sources.list.d, older releases use sources.list
+	SOURCES=""
+	for f in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+		[[ -f "$f" ]] && grep -qE '^(deb|URIs:).*debian' "$f" && SOURCES="$SOURCES $f"
+	done
+	if [[ -n "$SOURCES" ]] && ask "Aggiungo 'contrib' ai repository Debian in$SOURCES (con backup)?"; then
+		for f in $SOURCES; do
+			cp "$f" "$f.pifire.bak"
+			if [[ "$f" == *.sources ]]; then
+				sed -i -E '/^Components:/{/contrib/! s/main/main contrib/}' "$f"
+			else
+				sed -i -E '/^deb(-src)? .*debian.* main/{/ contrib/! s/ main/ main contrib/}' "$f"
+			fi
+		done
 		apt-get update
 		apt-cache policy ttf-mscorefonts-installer | grep -q 'Candidate: [0-9]' \
 			&& info "contrib attivo." || warn "Ancora non disponibile: controlla /etc/apt/sources.list a mano."

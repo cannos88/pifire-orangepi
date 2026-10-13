@@ -27,10 +27,15 @@ Prossimi passi: correzione dei guadagni PID in °C, riconoscimento dello spegnim
 
 ### 1. Sistema
 
-1. Scarica l'immagine **Debian Bookworm server** per Orange Pi Zero 2W dal sito Orange Pi (in alternativa Armbian Bookworm minimal).
-2. Scrivila sulla microSD con balenaEtcher o Raspberry Pi Imager.
-3. Primo avvio con monitor e tastiera, oppure via cavo seriale. Collega il Wi-Fi con `sudo nmtui`, poi aggiorna con `sudo apt update && sudo apt full-upgrade`.
+Sistema di riferimento: **Armbian, Debian 13 "trixie" Minimal** (kernel mainline), da [armbian.com/orangepizero2w](https://www.armbian.com/orangepizero2w/).
+
+1. Scrivi l'immagine sulla microSD con balenaEtcher o Raspberry Pi Imager.
+2. Primo avvio con monitor HDMI e tastiera USB (sulla porta USB-C dati, con adattatore OTG). Armbian chiede la password di root, crea il tuo utente e propone la configurazione del Wi-Fi.
+3. Aggiorna con `sudo apt update && sudo apt full-upgrade`.
 4. Da qui in poi lavori via SSH dal PC.
+5. A sistema funzionante, blocca gli aggiornamenti del kernel con `sudo armbian-config` (System → Freeze kernel). Il driver Wi-Fi della Zero 2W è esterno al kernel ufficiale: un aggiornamento automatico del kernel durante la stagione dei barbecue potrebbe romperlo. Gli altri pacchetti continuano ad aggiornarsi.
+
+L'immagine Debian ufficiale di Orange Pi (Bookworm, kernel 6.1) va bene lo stesso: script e modulo riconoscono entrambe.
 
 Per ora **non collegare niente all'header** a 40 pin.
 

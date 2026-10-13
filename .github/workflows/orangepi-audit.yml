@@ -1,0 +1,46 @@
+# Weekly check of the Python packages installed on the grill against known
+# vulnerabilities.  It changes nothing: libraries are updated only when a new
+# release is prepared (tools/lock_dependencies.sh).  If this run fails,
+# GitHub sends an e-mail and the report below says which package is affected.
+name: Vulnerability check
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"   # Monday morning
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use the released version (orangepi-stable) when it exists
+        run: git checkout orangepi-stable 2>/dev/null || echo "orangepi-stable not created yet: checking orangepi-dev"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build dependencies (bluepy)
+        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
+
+      - name: Install the grill's Python packages (exact release versions)
+        run: |
+          python -m venv /tmp/pifire
+          /tmp/pifire/bin/pip install --upgrade pip
+          /tmp/pifire/bin/pip install -c auto-install/constraints.txt -r auto-install/requirements.txt \
+            eventlet "influxdb_client[ciso]==1.48.0" scikit-learn==1.7.2 "gpiod>=2.2,<3"
+
+      - name: Known vulnerabilities (pip-audit)
+        shell: bash   # -eo pipefail: the step fails when pip-audit finds something
+        run: |
+          python -m pip install pip-audit
+          /tmp/pifire/bin/pip freeze --exclude-editable | grep -viE '^(pip|setuptools)==' > /tmp/installed.txt
+          pip-audit -r /tmp/installed.txt --no-deps --disable-pip --progress-spinner off --desc | tee /tmp/audit.txt
+          { echo '### pip-audit'; echo '```'; cat /tmp/audit.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

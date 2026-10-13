@@ -62,3 +62,29 @@ def test_ota_system_script_exists():
 				for arg in command:
 					if arg.startswith('/usr/local/bin/pifire/auto-install/orangepi/'):
 						assert os.path.exists(os.path.join(ROOT, arg.replace('/usr/local/bin/pifire/', '')))
+
+
+def constraint_pins():
+	pins = {}
+	with open(os.path.join(ROOT, 'auto-install', 'constraints.txt')) as f:
+		for line in f:
+			line = line.split('#', 1)[0].strip()
+			if '==' in line:
+				name, version = line.split('==', 1)
+				pins[norm(name)] = version.strip()
+	return pins
+
+
+def test_constraints_lock_the_requirements():
+	''' Every pinned requirement appears in constraints.txt with the same version '''
+	locked = constraint_pins()
+	for name, version in requirement_pins().items():
+		assert locked.get(name) == version, f'{name}: requirements {version}, constraints {locked.get(name)} (run tools/lock_dependencies.sh)'
+
+
+def test_constraints_leave_debian_packages_alone():
+	''' numpy/scipy come from Debian (python3-scipy), scikit-learn is pinned by the installer '''
+	locked = constraint_pins()
+	for name in ('numpy', 'scipy', 'scikit-learn', 'pip', 'setuptools'):
+		assert name not in locked
+	assert 'eventlet' in locked and 'werkzeug' in locked   # indirect and unpinned before

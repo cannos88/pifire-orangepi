@@ -17,6 +17,7 @@
 from common import *
 from importlib.metadata import version, PackageNotFoundError
 
+import os
 import subprocess
 import argparse
 import logging
@@ -368,6 +369,10 @@ def install_dependencies(current_version_string='0.0.0', current_build=None):
 		launch_pip = ['uv', 'pip', 'install']
 	else:
 		launch_pip = [python_exec, '-m', 'pip', 'install']
+	# Orange Pi fork: keep every package at the version of this release
+	constraints = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'auto-install', 'constraints.txt')
+	if os.path.exists(constraints):
+		launch_pip += ['-c', constraints]
 
 	status = 'Installing Python Dependencies...'
 	output = ' - Installing Python Dependencies'

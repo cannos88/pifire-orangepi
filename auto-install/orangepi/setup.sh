@@ -7,12 +7,17 @@
 #
 # Steps (each one asks before changing anything):
 #   1. system packages needed by PiFire and by the GPIO/I2C tools
-#   2. Debian "contrib" component (needed by the installer for the fonts package)
-#   3. serial console off, so header pins 8 and 10 can be used by the buttons/encoder
-#   4. I2C1 (pins 3/5) and SPI1 overlays in the boot configuration
-#   5. read-only deploy key for the private repository (root, used by installer and updater)
-#   6. emergency Wi-Fi network: NetworkManager, open network "PiFire-Setup" when no known Wi-Fi
-#   7. PiFire installer, cloning this repository
+#   2. base system: network name, time zone, kernel/firmware held, hardware watchdog
+#   3. Debian "contrib" component (needed by the installer for the fonts package)
+#   4. serial console off, so header pins 8 and 10 can be used by the buttons/encoder
+#   5. I2C1 (pins 3/5) and SPI1 overlays in the boot configuration
+#   6. read-only deploy key for the private repository (root, used by installer and updater)
+#   7. emergency Wi-Fi network: NetworkManager, open network "PiFire-Setup" when no known Wi-Fi
+#   8. PiFire installer, cloning this repository
+#
+# These are the steps an OTA update does not do: they change how the board
+# boots or how it is reached on the network.  Everything else (code, libraries,
+# services) arrives with updates from the web app.
 #
 # Options (environment variables):
 #   PIFIRE_REPO    repository to install   (default: git@github.com:cannos88/pifire-orangepi.git)
@@ -55,7 +60,65 @@ if ask "Installo i pacchetti?"; then
 fi
 
 # ---------------------------------------------------------------------------
-say "2. Repository Debian contrib"
+say "2. Sistema di base"
+
+# Network name: the grill answers at http://<name>.local (avahi, step 7)
+CUR_HOST="$(hostname)"
+info "Nome in rete: $CUR_HOST"
+if [[ "$CUR_HOST" != "pifire" ]] && ask "Rinomino il sistema in 'pifire' (indirizzo http://pifire.local)?"; then
+	hostnamectl set-hostname pifire
+	if grep -q '^127\.0\.1\.1' /etc/hosts; then
+		sed -i -E 's/^(127\.0\.1\.1[[:space:]]+).*/\1pifire/' /etc/hosts
+	else
+		echo "127.0.1.1	pifire" >> /etc/hosts
+	fi
+	info "Nome cambiato in pifire."
+fi
+
+# Time zone: cook history, events and timer end times use the board's clock
+TZ_NOW="$(timedatectl show -p Timezone --value 2>/dev/null)"
+info "Fuso orario: ${TZ_NOW:-sconosciuto}"
+if [[ "$TZ_NOW" != "Europe/Rome" ]] && ask "Imposto il fuso orario Europe/Rome?"; then
+	timedatectl set-timezone Europe/Rome && info "Fuso orario Europe/Rome."
+fi
+
+# Kernel, device tree, bootloader and firmware held at the tested version.
+# The Wi-Fi driver of the Zero 2W lives outside the mainline kernel: an
+# automatic kernel update could break it.  (armbian-config's own "freeze"
+# option has missed some of these packages.)
+KERNEL_PKGS="$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'linux-image-*' 'linux-dtb-*' 'linux-headers-*' 'linux-u-boot-*' 'armbian-firmware*' 2>/dev/null \
+	| awk '$1 == "ii" {print $2}' | sort -u)"
+HELD="$(apt-mark showhold 2>/dev/null)"
+TO_HOLD="$(comm -23 <(echo "$KERNEL_PKGS" | sed '/^$/d') <(echo "$HELD" | sort -u))"
+if [[ -z "$KERNEL_PKGS" ]]; then
+	warn "Pacchetti del kernel Armbian non trovati: salto il blocco."
+elif [[ -z "$TO_HOLD" ]]; then
+	info "Kernel e firmware già bloccati."
+else
+	info "Da bloccare: $(echo $TO_HOLD)"
+	info "Gli altri pacchetti continuano ad aggiornarsi con apt. Per sbloccare: sudo apt-mark unhold <pacchetto>."
+	if ask "Blocco gli aggiornamenti di kernel, bootloader e firmware?"; then
+		apt-mark hold $TO_HOLD >/dev/null && info "Bloccati."
+	fi
+fi
+
+# Hardware watchdog: if the system hangs, the board reboots by itself and the
+# relays go back off (GPIO reset + pull-downs on the SSR module).
+WD_CONF=/etc/systemd/system.conf.d/pifire-watchdog.conf
+if [[ -e /dev/watchdog || -e /dev/watchdog0 ]]; then
+	if [[ -f "$WD_CONF" ]]; then
+		info "Watchdog già attivo."
+	elif ask "Attivo il watchdog hardware (riavvio automatico dopo 15 s di blocco del sistema)?"; then
+		mkdir -p /etc/systemd/system.conf.d
+		printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=2min\n' > "$WD_CONF"
+		systemctl daemon-reexec && info "Watchdog attivo."
+	fi
+else
+	warn "Nessun watchdog hardware (/dev/watchdog): salto."
+fi
+
+# ---------------------------------------------------------------------------
+say "3. Repository Debian contrib"
 if apt-cache policy ttf-mscorefonts-installer 2>/dev/null | grep -q 'Candidate: (none)' \
 	|| ! apt-cache policy ttf-mscorefonts-installer 2>/dev/null | grep -q 'Candidate'; then
 	warn "Il pacchetto dei font usato dall'installer di PiFire non è disponibile: serve il componente 'contrib'."
@@ -82,7 +145,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-say "3. Console seriale (pin 8 e 10)"
+say "4. Console seriale (pin 8 e 10)"
 ENV_FILE=""
 for f in /boot/orangepiEnv.txt /boot/armbianEnv.txt /boot/dietpiEnv.txt; do
 	[[ -f "$f" ]] && ENV_FILE="$f" && break
@@ -106,7 +169,7 @@ if ask "Disattivo la console seriale (resta il login via SSH e sullo schermo HDM
 fi
 
 # ---------------------------------------------------------------------------
-say "4. Overlay I2C e SPI"
+say "5. Overlay I2C e SPI"
 OVERLAY_DIR="$(ls -d /boot/dtb/allwinner/overlay /boot/dtb*/allwinner/overlay 2>/dev/null | head -n1)"
 if [[ -z "$ENV_FILE" || -z "$OVERLAY_DIR" ]]; then
 	warn "Configurazione overlay non trovata (env: ${ENV_FILE:-?}, cartella: ${OVERLAY_DIR:-?}). Salto questo passo."
@@ -143,7 +206,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-say "5. Chiave di accesso al repository privato"
+say "6. Chiave di accesso al repository privato"
 KEY=/root/.ssh/id_ed25519
 if [[ "$PIFIRE_REPO" == git@* ]]; then
 	if [[ ! -f "$KEY" ]]; then
@@ -169,7 +232,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-say "6. Rete Wi-Fi di emergenza"
+say "7. Rete Wi-Fi di emergenza"
 info "Se il grill resta senza Wi-Fi per 3 minuti accende una rete aperta, «PiFire-Setup» (senza password)."
 info "Col telefono ti colleghi a quella rete, si apre la pagina Wi-Fi del grill e scegli la rete nuova."
 info "Da quella rete si vede solo la pagina Wi-Fi: il grill non si comanda."
@@ -215,7 +278,7 @@ if ask "Configuro la rete di emergenza?"; then
 fi
 
 # ---------------------------------------------------------------------------
-say "7. Installazione di PiFire"
+say "8. Installazione di PiFire"
 info "Repository: $PIFIRE_REPO  (ramo $PIFIRE_BRANCH)"
 if [[ -d /usr/local/bin/pifire ]]; then
 	warn "/usr/local/bin/pifire esiste già: l'installer non sovrascrive un'installazione esistente."
@@ -223,7 +286,7 @@ elif [[ $REBOOT_NEEDED -eq 1 ]]; then
 	info "Prima riavvia per attivare le modifiche di boot, poi rilancia questo script e salta i passi già fatti."
 elif ask "Avvio l'installer di PiFire (richiede 15-30 minuti)?"; then
 	sudo -u "$RUN_USER" env PIFIRE_REPO="$PIFIRE_REPO" PIFIRE_BRANCH="$PIFIRE_BRANCH" bash "$REPO_DIR/auto-install/install.sh"
-	info "Al termine apri http://$(hostname -I | awk '{print $1}') e nel wizard scegli 'PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W'."
+	info "Al termine apri http://$(hostname).local (oppure http://$(hostname -I | awk '{print $1}')) e nel wizard scegli 'PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W'."
 fi
 
 # ---------------------------------------------------------------------------

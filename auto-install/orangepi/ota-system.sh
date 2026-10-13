@@ -8,7 +8,7 @@
 #  - emergency Wi-Fi service, only where NetworkManager already runs the network.
 #    Switching an Armbian Minimal system from systemd-networkd to NetworkManager
 #    is NOT done here: done unattended it could cut the grill off the network.
-#    That stays in setup.sh (step 6), run by hand over SSH.
+#    That stays in setup.sh (step 7), run by hand over SSH.
 
 PIFIRE_DIR=/usr/local/bin/pifire
 LOG="$PIFIRE_DIR/logs/ota-system.log"
@@ -35,6 +35,6 @@ if systemctl is-active --quiet NetworkManager && ! grep -qsE '^[[:space:]]*rende
 	systemctl enable pifire-wifi.service >/dev/null 2>&1
 	systemctl restart pifire-wifi.service && log "pifire-wifi: installed and restarted"
 else
-	log "pifire-wifi: NetworkManager does not manage the network yet; run setup.sh step 6 over SSH to enable the emergency Wi-Fi"
+	log "pifire-wifi: NetworkManager does not manage the network yet; run setup.sh step 7 over SSH to enable the emergency Wi-Fi"
 fi
 exit 0

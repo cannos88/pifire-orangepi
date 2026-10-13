@@ -154,6 +154,16 @@ def report():
 	if console_on or getty == 'active':
 		print('-> I pin 8 e 10 (tasti/encoder della PCB v4) non sono utilizzabili finché la console è attiva.')
 
+	section('Sistema di base')
+	print(f'Nome in rete: {os.uname().nodename}  (http://{os.uname().nodename}.local)')
+	print(f'Fuso orario:  {run(["timedatectl", "show", "-p", "Timezone", "--value"]) or "?"}')
+	held = (run(['apt-mark', 'showhold']) or '').split()
+	kernel_held = [p for p in held if p.startswith(('linux-image', 'linux-dtb', 'linux-u-boot', 'armbian-firmware'))]
+	print(f'Kernel/firmware bloccati: {", ".join(kernel_held) if kernel_held else "NO (setup.sh, passo 2)"}')
+	watchdog_dev = os.path.exists('/dev/watchdog') or os.path.exists('/dev/watchdog0')
+	watchdog_on = os.path.exists('/etc/systemd/system.conf.d/pifire-watchdog.conf')
+	print(f'Watchdog hardware: {"attivo" if watchdog_on else ("presente, non attivo (setup.sh, passo 2)" if watchdog_dev else "non presente")}')
+
 	section('Rete')
 	nm_state = run(['systemctl', 'is-active', 'NetworkManager'])
 	print(f'NetworkManager: {nm_state or "non installato"}')
@@ -166,7 +176,7 @@ def report():
 			print(f'Wi-Fi: {line}')
 	print(f'Servizio rete di emergenza (pifire-wifi): {run(["systemctl", "is-active", "pifire-wifi"]) or "?"}')
 	if nm_state != 'active':
-		print('-> Senza NetworkManager la rete di emergenza non funziona: rilancia setup.sh, passo 6.')
+		print('-> Senza NetworkManager la rete di emergenza non funziona: rilancia setup.sh, passo 7.')
 
 	section('Temperatura CPU')
 	for zone in sorted(glob.glob('/sys/class/thermal/thermal_zone*')):

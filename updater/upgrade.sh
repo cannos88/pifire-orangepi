@@ -4,6 +4,12 @@
 # Many thanks to the PiVPN project (pivpn.io) for much of the inspiration for this script
 # Run from https://raw.githubusercontent.com/nebhead/pifire/master/auto-install/upgrade.sh
 
+# Exact versions of every package (direct and indirect) for this release:
+# libraries change only with a new release (Orange Pi fork, tools/lock_dependencies.sh)
+CONSTRAINTS=/usr/local/bin/pifire/auto-install/constraints.txt
+CONSTRAINT_ARGS=()
+[ -f "$CONSTRAINTS" ] && CONSTRAINT_ARGS=(-c "$CONSTRAINTS")
+
 echo "Starting PiFire Upgrade Script..." | tee -a /usr/local/bin/pifire/logs/upgrade.log
 
 # Must be root to install
@@ -86,7 +92,7 @@ if [ "$OS_BITS" = "32" ]; then
         python -m pip install "greenlet==3.1.1" "eventlet==0.30.2" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
     else
         echo " + System is running a python version 3.11 or higher." | tee -a /usr/local/bin/pifire/logs/upgrade.log
-        python -m pip install eventlet 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
+        python -m pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
     fi
 
     echo " + Installing modules from requirements.txt one at a time... " | tee -a /usr/local/bin/pifire/logs/upgrade.log
@@ -104,7 +110,7 @@ if [ "$OS_BITS" = "32" ]; then
                 ;;
         esac
         echo " - Installing $req ..." | tee -a /usr/local/bin/pifire/logs/upgrade.log
-        python -m pip install "$req" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
+        python -m pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
         status=${PIPESTATUS[0]}
         if [ $status -ne 0 ]; then
             echo " !! Failed to install $req. Continuing with next package..." | tee -a /usr/local/bin/pifire/logs/upgrade.log
@@ -159,7 +165,7 @@ else
     
     # Install latest eventlet
     echo " + Installing latest eventlet" | tee -a /usr/local/bin/pifire/logs/upgrade.log
-    uv pip install eventlet
+    uv pip install "${CONSTRAINT_ARGS[@]}" eventlet
     echo " + Installing modules from requirements.txt one at a time... " | tee -a /usr/local/bin/pifire/logs/upgrade.log
     while IFS= read -r req || [ -n "$req" ]; do
         # Strip inline comments and trim whitespace
@@ -175,7 +181,7 @@ else
                 ;;
         esac
         echo " - Installing $req ..." | tee -a /usr/local/bin/pifire/logs/upgrade.log
-        uv pip install "$req" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
+        uv pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
         status=${PIPESTATUS[0]}
         if [ $status -ne 0 ]; then
             echo " !! Failed to install $req. Continuing with next package..." | tee -a /usr/local/bin/pifire/logs/upgrade.log

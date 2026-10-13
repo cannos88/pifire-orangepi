@@ -38,9 +38,8 @@ Sistema di riferimento: **Armbian, Debian 13 "trixie" Minimal** (kernel mainline
 
 1. Scrivi l'immagine sulla microSD con balenaEtcher o Raspberry Pi Imager.
 2. Primo avvio con monitor HDMI e tastiera USB (sulla porta USB-C dati, con adattatore OTG). Armbian chiede la password di root, crea il tuo utente e propone la configurazione del Wi-Fi.
-3. Aggiorna con `sudo apt update && sudo apt full-upgrade`.
+3. Aggiorna con `sudo apt update && sudo apt full-upgrade`: è l'ultima volta che si aggiornano kernel e firmware, poi `setup.sh` li blocca.
 4. Da qui in poi lavori via SSH dal PC.
-5. A sistema funzionante, blocca gli aggiornamenti del kernel con `sudo armbian-config` (System → Freeze kernel). Il driver Wi-Fi della Zero 2W è esterno al kernel ufficiale: un aggiornamento automatico del kernel durante la stagione dei barbecue potrebbe romperlo. Gli altri pacchetti continuano ad aggiornarsi.
 
 L'immagine Debian ufficiale di Orange Pi (Bookworm, kernel 6.1) va bene lo stesso: script e modulo riconoscono entrambe.
 
@@ -68,14 +67,19 @@ sudo GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" \
 sudo bash /opt/pifire-setup/auto-install/orangepi/setup.sh
 ```
 
-Lo script chiede conferma prima di ogni passo:
+Lo script chiede conferma prima di ogni passo. Sono i passi che un aggiornamento OTA non fa, perché cambiano come la scheda si avvia o come la si raggiunge in rete:
 1. pacchetti di sistema (git, compilatore, strumenti I2C e GPIO);
-2. componente Debian `contrib`, che serve all'installer;
-3. disattivazione della console seriale, necessaria solo per tasti/encoder sui pin 8 e 10;
-4. overlay I2C1 (pin 3 e 5, ADS1115) e SPI1;
-5. verifica della chiave di accesso a GitHub;
-6. rete Wi-Fi di emergenza: NetworkManager e servizio `pifire-wifi` (vedi [Wi-Fi e rete di emergenza](#wi-fi-e-rete-di-emergenza));
-7. installer di PiFire, dopo il riavvio se sono cambiate impostazioni di boot o di rete.
+2. sistema di base:
+   - nome in rete **pifire** (indirizzo `http://pifire.local`);
+   - fuso orario Europe/Rome (orari di storico, eventi e timer);
+   - **kernel, bootloader e firmware bloccati** alla versione installata: il driver Wi-Fi della Zero 2W è esterno al kernel ufficiale e un aggiornamento automatico durante la stagione dei barbecue potrebbe romperlo. Gli altri pacchetti di sistema continuano ad aggiornarsi con apt. (L'opzione *Freeze* di `armbian-config` in passato ha saltato alcuni pacchetti, per questo lo fa lo script.)
+   - **watchdog hardware**: se il sistema si blocca, dopo 15 secondi la scheda si riavvia da sola e i relè tornano spenti, invece di restare per esempio con la coclea accesa;
+3. componente Debian `contrib`, che serve all'installer;
+4. disattivazione della console seriale, necessaria solo per tasti/encoder sui pin 8 e 10;
+5. overlay I2C1 (pin 3 e 5, ADS1115) e SPI1;
+6. verifica della chiave di accesso a GitHub;
+7. rete Wi-Fi di emergenza: NetworkManager e servizio `pifire-wifi` (vedi [Wi-Fi e rete di emergenza](#wi-fi-e-rete-di-emergenza));
+8. installer di PiFire, dopo il riavvio se sono cambiate impostazioni di boot o di rete.
 
 Se un overlay non viene riconosciuto, lo script mostra l'elenco di quelli disponibili. Mandamelo e aggiorno lo script: i nomi cambiano tra l'immagine Orange Pi e Armbian.
 
@@ -99,7 +103,7 @@ sudo python3 /opt/pifire-setup/auto-install/orangepi/opi_check.py inputs
 
 ### 5. Wizard di PiFire
 
-Apri `http://<indirizzo-dell-orange-pi>` e nel wizard scegli:
+Apri `http://pifire.local` (o l'indirizzo IP dell'Orange Pi) e nel wizard scegli:
 - **Piattaforma**: *PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W*
 - **System Type**: *Orange Pi Zero 2W*
 - **Relay Type**: *Active High* (modulo SSR della PCB v4)
@@ -140,7 +144,7 @@ Nel simulatore (fuoco spento a 110 °C): PiFire originale riaccende dopo 28 minu
 
 ## Wi-Fi e rete di emergenza
 
-Il passo 6 di `setup.sh` affida la rete a NetworkManager (l'immagine Armbian *Minimal* usa systemd-networkd; la rete già configurata resta) e installa il servizio `pifire-wifi`.
+Il passo 7 di `setup.sh` affida la rete a NetworkManager (l'immagine Armbian *Minimal* usa systemd-networkd; la rete già configurata resta) e installa il servizio `pifire-wifi`.
 
 **Se cambi la password del router, o porti il grill su un'altra rete:**
 1. il grill prova le reti salvate; dopo **3 minuti** senza Wi-Fi accende la rete **PiFire-Setup**, aperta, senza password;
@@ -194,9 +198,15 @@ Corretto rispetto a PiFire originale:
 
 Librerie aggiornate per vulnerabilità note: Pillow 12.3.0, Flask 3.1.3, zeroconf 0.151.5, redis 6.4.0 (la 5.x si portava dietro PyJWT 2.9 vulnerabile), jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Tolto il pacchetto `uuid` di PyPI, un modulo Python 2 inutile (si usa quello della libreria standard).
 
-Controlli automatici:
-- il workflow dei test, ogni lunedì e a ogni push, installa le librerie del grill e le confronta con il database delle vulnerabilità (`pip-audit`); se ne trova una il run fallisce e GitHub ti manda una mail;
-- **Dependabot** (`.github/dependabot.yml`) apre ogni settimana le pull request di aggiornamento verso `orangepi-dev`. Per gli avvisi di sicurezza attiva anche *Settings → Code security → Dependabot alerts* nel repository.
+**Librerie bloccate alla versione rilasciata.** `auto-install/constraints.txt` fissa la versione esatta di tutti i pacchetti Python del grill, anche quelli indiretti (Werkzeug, Jinja2, eventlet...). Installer, updater, script di upgrade e wizard lo usano tutti: un'installazione fatta oggi o tra sei mesi ha le stesse librerie, e niente si aggiorna da solo. numpy e scipy restano quelli di Debian (`python3-scipy`).
+
+Le librerie si aggiornano solo preparando una nuova versione:
+1. cambio `auto-install/requirements.txt` e lancio `tools/lock_dependencies.sh` (con Python 3.13), che rigenera `constraints.txt`;
+2. aggiungo una build in `updater/updater_manifest.json` con le versioni cambiate, così arrivano anche ai grill già installati;
+3. test, prova sul grill, *Promote to stable*.
+I test controllano che requirements, constraints e manifest siano allineati.
+
+**Controllo vulnerabilità** (workflow *Vulnerability check*): ogni lunedì installa le librerie della versione stabile e le confronta con il database delle vulnerabilità note (`pip-audit`). Non cambia niente: se trova qualcosa il run fallisce, GitHub ti manda una mail e decidiamo se serve una nuova versione.
 
 Limiti noti, da affrontare più avanti:
 - la web app non ha login: chiunque sia sulla rete di casa può comandare il grill (come in PiFire originale);
@@ -214,14 +224,14 @@ Cosa arriva con un aggiornamento:
 - **codice, pagine e grafica**: sempre;
 - **librerie Python e passi di sistema**: solo se sono elencati in `updater/updater_manifest.json` per una *build* più nuova di quella installata. Per questo ogni volta che cambio una libreria o una configurazione di sistema aggiungo una voce al manifest e alzo il numero di build (un test lo controlla). La build 71 porta gli aggiornamenti di sicurezza delle librerie e lancia `auto-install/orangepi/ota-system.sh` (configurazione di supervisor e servizio Wi-Fi).
 
-Cosa **non** si fa via OTA: il passaggio della rete da systemd-networkd a NetworkManager (passo 6 di `setup.sh`). Fatto senza nessuno davanti potrebbe lasciare il grill fuori dalla rete, quindi resta un passo da lanciare via SSH. Sull'installazione nuova lo fa già `setup.sh`.
+Cosa **non** si fa via OTA: i passi di `setup.sh` (nome in rete, fuso orario, blocco del kernel, watchdog, console seriale, overlay, passaggio della rete a NetworkManager). Cambiano come la scheda si avvia o come la si raggiunge: fatti senza nessuno davanti, un errore potrebbe lasciare il grill irraggiungibile. Si fanno una volta, alla prima installazione; se in futuro ne servisse uno nuovo, si rilancia `setup.sh` via SSH e si salta quello che è già fatto.
 
 Il primo `setup.sh` installa da `orangepi-dev`. Quando ci sarà una versione stabile (workflow *Promote to stable*), da *Admin → System Updates* si passa al ramo `orangepi-stable` e da lì in poi il grill riceve solo le versioni promosse.
 
 ## GitHub Actions
 
 - **Orange Pi tests**: a ogni push su `orangepi-dev` e `orangepi-stable` gira la suite completa su Python 3.11 e 3.13. Il confronto del simulatore viene allegato alla run, con grafico e numeri.
-- **Vulnerabilità**: stesso workflow, job *audit*, anche ogni lunedì mattina.
+- **Vulnerability check**: ogni lunedì mattina, solo controllo (vedi *Sicurezza e dipendenze*).
 - **Promote to stable**: si lancia a mano dalla scheda Actions. Ripete i test e, solo se passano, porta `orangepi-stable` allo stato di `orangepi-dev` e crea un tag `stable-AAAAMMGG-HHMM`. Il grill installa e aggiorna da `orangepi-stable`.
 
 Per vedere "Promote to stable" nella scheda Actions, imposta `orangepi-dev` come ramo predefinito: Settings → General → Default branch. Il workflow "Deploy static content to Pages" ereditato da PiFire fallisce sui repository privati senza GitHub Pages: si può disattivare dalla scheda Actions.

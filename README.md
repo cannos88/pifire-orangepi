@@ -21,7 +21,7 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
 | **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
 | **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano. |
-| **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie aggiornate, controllo settimanale delle vulnerabilità e Dependabot. |
+| **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie aggiornate e bloccate alla versione rilasciata, controllo settimanale delle vulnerabilità. |
 | **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
 Tutte le funzioni di PiFire restano: ricette, storico delle cotture, notifiche, Smart Start, gestione del pellet, aggiornamenti dalla web app.
@@ -84,7 +84,7 @@ Mappa dei pin, collegamenti e precauzioni (console seriale sui pin 8 e 10, pin 3
 
 La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
-1. Armbian **Debian 13 trixie Minimal** sulla microSD, Wi-Fi configurato, kernel bloccato con `armbian-config`.
+1. Armbian **Debian 13 trixie Minimal** sulla microSD, Wi-Fi configurato, `apt full-upgrade`.
 2. Chiave SSH di root sull'Orange Pi, aggiunta come **deploy key in sola lettura** di questo repository.
 3. Clone e preparazione:
    ```bash
@@ -92,12 +92,13 @@ La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
      git clone -b orangepi-dev git@github.com:cannos88/pifire-orangepi.git /opt/pifire-setup
    sudo bash /opt/pifire-setup/auto-install/orangepi/setup.sh
    ```
+   Lo script fa una volta sola i passi che gli aggiornamenti non fanno: nome in rete `pifire`, fuso orario, kernel e firmware bloccati, watchdog hardware, console seriale, I2C/SPI, rete di emergenza, poi l'installer.
 4. Verifica: `sudo python3 /opt/pifire-setup/auto-install/orangepi/opi_check.py`
-5. Wizard su `http://<indirizzo-orange-pi>`: piattaforma *PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W*, relè *Active High*, ventola *AC*, unità °C.
+5. Wizard su `http://pifire.local`: piattaforma *PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W*, relè *Active High*, ventola *AC*, unità °C.
 
 ## Uso
 
-**Web app.** Dal telefono o dal PC apri l'indirizzo dell'Orange Pi. La dashboard Moderna mostra temperatura, modalità e tempo di cottura, permette di accendere, passare tra Affumicatura e Mantenimento, cambiare la temperatura (con preset), attivare Smoke+, impostare i target delle sonde e un timer. Accensione, spegnimento e Stop chiedono conferma. Le pagine classiche di PiFire (Storico, Ricette, Eventi, Impostazioni, Admin) restano disponibili con lo stesso tema.
+**Web app.** Dal telefono o dal PC apri `http://pifire.local` (o l'indirizzo IP dell'Orange Pi). La dashboard Moderna mostra temperatura, modalità e tempo di cottura, permette di accendere, passare tra Affumicatura e Mantenimento, cambiare la temperatura (con preset), attivare Smoke+, impostare i target delle sonde e un timer. Accensione, spegnimento e Stop chiedono conferma. Le pagine classiche di PiFire (Storico, Ricette, Eventi, Impostazioni, Admin) restano disponibili con lo stesso tema.
 
 **Home Assistant.** In *Settings → Notifications → MQTT* abilita MQTT con l'autodiscovery e, se vuoi comandare il grill, *Allow remote control*. Compaiono le entità Grill Mode, Hold Temperature e Smoke Plus. Le regole di sicurezza sono descritte in [ORANGEPI.md](ORANGEPI.md#home-assistant).
 
@@ -115,7 +116,7 @@ La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
 GitHub Actions:
 - **[Orange Pi tests](https://github.com/cannos88/pifire-orangepi/actions/workflows/orangepi-tests.yml)**: a ogni push su `orangepi-dev` e `orangepi-stable`, test su Python 3.11 e 3.13, controllo degli script e confronto dei controller sul simulatore (report scaricabile dalla pagina del run).
-- Lo stesso workflow controlla ogni lunedì le librerie del grill con `pip-audit`; Dependabot propone gli aggiornamenti con una pull request.
+- **Vulnerability check**: ogni lunedì controlla le librerie della versione stabile con `pip-audit` e manda una mail se c'è qualcosa. Non aggiorna niente: le librerie sono fissate in `auto-install/constraints.txt` e cambiano solo con una nuova versione (`tools/lock_dependencies.sh`).
 - **Promote to stable**: si avvia a mano dalla scheda *Actions*; ripete i test e, se passano, porta `orangepi-stable` allo stato di `orangepi-dev` con un tag `stable-AAAAMMGG-HHMM`.
 
 Per importare gli aggiornamenti di PiFire originale:

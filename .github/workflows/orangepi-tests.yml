@@ -10,9 +10,6 @@ on:
     branches: ["orangepi-dev", "orangepi-stable"]
   workflow_call:
   workflow_dispatch:
-  schedule:
-    # Monday morning: catches vulnerabilities published for libraries we already use
-    - cron: "17 5 * * 1"
 
 permissions:
   contents: read
@@ -42,6 +39,8 @@ jobs:
           bash -n auto-install/install.sh
           bash -n auto-install/orangepi/setup.sh
           bash -n auto-install/orangepi/ota-system.sh
+          bash -n updater/upgrade.sh
+          bash -n tools/lock_dependencies.sh
 
       - name: Run tests
         run: python -m pytest tests -q
@@ -60,28 +59,3 @@ jobs:
         with:
           name: simulator-report
           path: sim-report/
-
-  audit:
-    # Installs the grill's Python dependencies (auto-install/requirements.txt plus
-    # the packages the installer adds) and checks them against known vulnerabilities.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Build dependencies (bluepy)
-        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
-
-      - name: Install the grill's Python packages
-        run: |
-          python -m venv /tmp/pifire
-          /tmp/pifire/bin/pip install --upgrade pip
-          /tmp/pifire/bin/pip install -r auto-install/requirements.txt eventlet "influxdb_client[ciso]==1.48.0" scikit-learn==1.7.2 "gpiod>=2.2,<3"
-
-      - name: Known vulnerabilities (pip-audit)
-        run: |
-          /tmp/pifire/bin/pip install pip-audit
-          /tmp/pifire/bin/pip-audit --progress-spinner off --desc

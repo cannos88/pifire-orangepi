@@ -15,6 +15,7 @@
 '''
 
 from common import * # Common Library for writing settings
+import os
 import subprocess
 import argparse
 import logging
@@ -272,6 +273,10 @@ def run_wizard(settings, WizardData, WizardInstallInfo):
 		launch_pip = ['uv', 'pip', 'install']
 	else:
 		launch_pip = [python_exec, '-m', 'pip', 'install']
+	# Orange Pi fork: keep every package at the version of this release
+	constraints = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'auto-install', 'constraints.txt')
+	if os.path.exists(constraints):
+		launch_pip += ['-c', constraints]
 
 	status = 'Installing Python Dependencies...'
 	output = ' - Installing Python Dependencies'

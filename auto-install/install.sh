@@ -313,6 +313,12 @@ else
     echo " + sudoers rules installed successfully." | tee -a ~/logs/pifire_install.log
 fi
 
+# Exact versions of every package (direct and indirect) for this release:
+# libraries change only with a new release (Orange Pi fork, tools/lock_dependencies.sh)
+CONSTRAINTS=/usr/local/bin/pifire/auto-install/constraints.txt
+CONSTRAINT_ARGS=()
+[ -f "$CONSTRAINTS" ] && CONSTRAINT_ARGS=(-c "$CONSTRAINTS")
+
 # Install UV (Universal Virtualenv) for Python 3.11+
 # If using 64-bit OS OR -uv option is set
 if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
@@ -336,13 +342,13 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
     echo " - Installing module dependencies... " | tee -a ~/logs/pifire_install.log
 
     # Install latest eventlet
-    if ! uv pip install eventlet 2>&1 | tee -a ~/logs/pifire_install.log; then
+    if ! uv pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a ~/logs/pifire_install.log; then
         echo " !! Failed to install eventlet. Installation cannot continue." | tee -a ~/logs/pifire_install.log
         exit 1
     fi
 
     # Install influxdb_client with CISO support for better performance
-    if ! uv pip install "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log; then
+    if ! uv pip install "${CONSTRAINT_ARGS[@]}" "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log; then
         echo " !! Failed to install influxdb_client. Installation cannot continue." | tee -a ~/logs/pifire_install.log
         exit 1
     fi
@@ -354,7 +360,7 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
         echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
     else
         echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log
-        if ! uv pip install rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
+        if ! uv pip install "${CONSTRAINT_ARGS[@]}" rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
             echo " !! Failed to install rpi.gpio. Installation cannot continue." | tee -a ~/logs/pifire_install.log
             exit 1
         fi
@@ -363,7 +369,7 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
     # If OS_version is "11" or "12", install scikit-learn==1.4.2 else install scikit-learn==1.7.2
     if [[ "$OS_VERSION" == "11" || "$OS_VERSION" == "12" ]]; then
         echo " + Installing scikit-learn==1.4.2" | tee -a ~/logs/pifire_install.log
-        if ! uv pip install scikit-learn==1.4.2 2>&1 | tee -a ~/logs/pifire_install.log; then
+        if ! uv pip install "${CONSTRAINT_ARGS[@]}" scikit-learn==1.4.2 2>&1 | tee -a ~/logs/pifire_install.log; then
             echo " !! Failed to install scikit-learn. Installation cannot continue." | tee -a ~/logs/pifire_install.log
             exit 1
         fi
@@ -371,7 +377,7 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
         # if OSBITS is 64, install scikit-learn==1.7.2
         if [ "$OS_BITS" = "64" ]; then
             echo " + Installing scikit-learn==1.7.2" | tee -a ~/logs/pifire_install.log
-            if ! uv pip install scikit-learn==1.7.2 2>&1 | tee -a ~/logs/pifire_install.log; then
+            if ! uv pip install "${CONSTRAINT_ARGS[@]}" scikit-learn==1.7.2 2>&1 | tee -a ~/logs/pifire_install.log; then
                 echo " !! Failed to install scikit-learn. Installation cannot continue." | tee -a ~/logs/pifire_install.log
                 exit 1
             fi
@@ -395,7 +401,7 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
                 ;;
         esac
         echo " - Installing $req ..." | tee -a ~/logs/pifire_install.log
-        uv pip install "$req" 2>&1 | tee -a ~/logs/pifire_install.log
+        uv pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a ~/logs/pifire_install.log
         status=${PIPESTATUS[0]}
         if [ $status -ne 0 ]; then
             echo " !! Failed to install $req. Installation cannot continue." | tee -a ~/logs/pifire_install.log
@@ -434,8 +440,8 @@ else
         python -m pip install "influxdb_client==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
     else
         echo " + System is running a python version 3.11 or higher." | tee -a ~/logs/pifire_install.log
-        python -m pip install eventlet 2>&1 | tee -a ~/logs/pifire_install.log
-        python -m pip install "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
+        python -m pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a ~/logs/pifire_install.log
+        python -m pip install "${CONSTRAINT_ARGS[@]}" "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
     fi
     if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
         echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
@@ -443,7 +449,7 @@ else
         echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
     else
         echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log
-        if ! python -m pip install rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
+        if ! python -m pip install "${CONSTRAINT_ARGS[@]}" rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
             echo " !! Failed to install rpi.gpio. Installation cannot continue." | tee -a ~/logs/pifire_install.log
             exit 1
         fi
@@ -464,7 +470,7 @@ else
                 ;;
         esac
         echo " - Installing $req ..." | tee -a ~/logs/pifire_install.log
-        python -m pip install "$req" 2>&1 | tee -a ~/logs/pifire_install.log
+        python -m pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a ~/logs/pifire_install.log
         status=${PIPESTATUS[0]}
         if [ $status -ne 0 ]; then
             echo " !! Failed to install $req. Installation cannot continue." | tee -a ~/logs/pifire_install.log

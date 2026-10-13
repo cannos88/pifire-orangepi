@@ -1,5 +1,5 @@
 # PiFire Wi-Fi service: emergency network "PiFire-Setup" and Wi-Fi setup page.
-# Installed by auto-install/orangepi/setup.sh (step 6).
+# Installed by auto-install/orangepi/setup.sh (step 7).
 [Unit]
 Description=PiFire Wi-Fi (rete di emergenza PiFire-Setup)
 After=NetworkManager.service redis-server.service

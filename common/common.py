@@ -248,6 +248,7 @@ def default_settings():
 		'maxstartuptemp' : 100, # User Defined. Take this value if the startup temp is higher than maxstartuptemp
 		'maxtemp' : 550, 		# User Defined. If temp exceeds value in any mode, shut off. (including monitor mode)
 		'reigniteretries' : 1, 	# Number of tries to reignite grill if it has gone below the safe temp (0 to disable)
+		'flameout_detect' : True,  # Detect a fire pot gone out in Hold mode early (temperature falling with high auger output)
 		'startup_check' : True,	# True = Enabled
 		'allow_manual_changes' : False,  # Allow the user to change outputs manually while grill is running
 		'manual_override_time' : 30  # Number of seconds to override the controller with manual changes
@@ -479,7 +480,9 @@ def default_notify_services():
       "password": "",
       "port": "1883",
       "update_sec": "30",
-      "username": ""
+      "username": "",
+      "control": False,  # Accept mode / hold temperature / Smoke Plus commands over MQTT (Home Assistant)
+      "allow_remote_startup": False  # Also accept Startup over MQTT (the igniter heats with nobody at the grill)
     }
 
 	services['wled'] = {

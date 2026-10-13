@@ -25,6 +25,7 @@ import atexit
 from common import *  # Common Module for WebUI and Control Program
 from common.process_mon import Process_Monitor
 from common.redis_queue import RedisQueue
+from controller.flameout import FlameoutDetector
 from notify.notifications import *
 from file_mgmt.recipes import convert_recipe_units
 from file_mgmt.cookfile import create_cookfile
@@ -570,6 +571,12 @@ def _work_cycle(mode, grill_platform, probe_complex, display_device, dist_device
 	pid_output = 0
 	ControlFanPid = False
 
+	# Flame-out detection while holding (see controller/flameout.py)
+	flameoutDetector = FlameoutDetector(units=settings['globals']['units'],
+		enabled=(mode == 'Hold' and settings['safety'].get('flameout_detect', True)))
+	flameout_state = FlameoutDetector.OK
+	flameout_warned = False
+
 	# ============ Main Work Cycle ============
 	while status == 'Active':
 		now = time.time()
@@ -724,6 +731,18 @@ def _work_cycle(mode, grill_platform, probe_complex, display_device, dist_device
 						ControlFanPid = False
 					# Don't set ratio over maximum.
 					CycleRatio = min(CycleRatio, settings['cycle_data']['u_max'])			
+
+				# Flame-out detection: while a flame-out is suspected, feed only the pellets that held the set point
+				flameout_state = flameoutDetector.update(now, ptemp, control['primary_setpoint'], CycleRatio,
+					settings['cycle_data']['u_max'], active=(target_temp_achieved and not LidOpenDetect))
+				if flameout_state == FlameoutDetector.SUSPECT:
+					CycleRatio = min(CycleRatio, flameoutDetector.feed_limit(settings['cycle_data']['u_min']))
+					if not flameout_warned:
+						eventLogger.warning(f'Possible flame-out: temperature falling with high auger output. Auger limited to {CycleRatio:.2f}.')
+						flameout_warned = True
+				elif flameout_warned and flameout_state == FlameoutDetector.OK:
+					eventLogger.info('Flame-out suspicion cleared, normal control resumed.')
+					flameout_warned = False
 			if manual_override['auger'] < now:
 				manual_override['auger'] = 0
 				# If Auger is OFF and time since toggle is greater than Off Time
@@ -842,7 +861,9 @@ def _work_cycle(mode, grill_platform, probe_complex, display_device, dist_device
 		if mode in ('Startup', 'Reignite'):
 			control['safety']['afterstarttemp'] = ptemp
 		elif mode in ('Smoke', 'Hold'):
-			if ptemp < control['safety']['startuptemp']:
+			if ptemp < control['safety']['startuptemp'] or flameout_state == FlameoutDetector.FLAMEOUT:
+				if flameout_state == FlameoutDetector.FLAMEOUT:
+					eventLogger.warning('Flame-out detected: temperature kept falling with steady pellet feed.')
 				if control['safety']['reigniteretries'] == 0:
 					display_device.display_text('ERROR')
 					control['mode'] = 'Error'

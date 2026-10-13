@@ -21,7 +21,8 @@ jobs:
           fetch-depth: 0
 
       - name: Use the released version (orangepi-stable) when it exists
-        run: git checkout orangepi-stable 2>/dev/null || echo "orangepi-stable not created yet: checking orangepi-dev"
+        run: |
+          git checkout orangepi-stable 2>/dev/null || echo "orangepi-stable not created yet, checking orangepi-dev"
 
       - uses: actions/setup-python@v5
         with:

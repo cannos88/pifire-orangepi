@@ -34,6 +34,11 @@ jobs:
       - name: Install test dependencies
         run: pip install -r tests/requirements.txt
 
+      - name: Check workflow files
+        run: |
+          pip install actionlint-py
+          actionlint
+
       - name: Check shell scripts
         run: |
           bash -n auto-install/install.sh

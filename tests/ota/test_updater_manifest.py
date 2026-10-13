@@ -1,0 +1,64 @@
+'''
+OTA updates: a grill updated from the web app only installs the libraries and
+runs the system steps listed in updater/updater_manifest.json for builds newer
+than its own.  A pin changed in auto-install/requirements.txt without a new
+manifest entry would reach new installs but never the grill already in use.
+'''
+
+import json
+import os
+import re
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+
+def norm(name):
+	return re.sub(r'[-_.]+', '-', name).lower()
+
+
+def manifest():
+	with open(os.path.join(ROOT, 'updater', 'updater_manifest.json')) as f:
+		return json.load(f)
+
+
+def requirement_pins():
+	pins = {}
+	with open(os.path.join(ROOT, 'auto-install', 'requirements.txt')) as f:
+		for line in f:
+			line = line.split('#', 1)[0].strip()
+			if '==' in line:
+				name, version = line.split('==', 1)
+				pins[norm(name)] = version.strip()
+	return pins
+
+
+def test_metadata_build_is_the_newest_entry():
+	m = manifest()
+	newest = max(v['build'] for v in m['versions'])
+	assert m['metadata']['versions']['build'] == newest
+
+
+def test_requirement_pins_reach_installed_grills():
+	''' The newest pinned mention of each package in the manifest matches requirements.txt '''
+	m = manifest()
+	latest = {}
+	for entry in sorted(m['versions'], key=lambda v: v['build']):
+		for section in entry['dependencies'].values():
+			for dep in section['py_dependencies']:
+				if '==' in dep:
+					name, version = dep.split('==', 1)
+					latest[norm(name)] = version
+	pins = requirement_pins()
+	stale = {name: (pins[name], latest[name]) for name in pins if name in latest and latest[name] != pins[name]}
+	assert not stale, f'add a manifest entry (new build) for: {stale}'
+	for name in ('flask', 'pillow', 'redis', 'zeroconf'):   # security updates of this fork
+		assert latest.get(name) == pins[name]
+
+
+def test_ota_system_script_exists():
+	for entry in manifest()['versions']:
+		for section in entry['dependencies'].values():
+			for command in section['command_list']:
+				for arg in command:
+					if arg.startswith('/usr/local/bin/pifire/auto-install/orangepi/'):
+						assert os.path.exists(os.path.join(ROOT, arg.replace('/usr/local/bin/pifire/', '')))

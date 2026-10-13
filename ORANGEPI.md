@@ -206,6 +206,18 @@ Limiti noti, da affrontare più avanti:
 
 Nel codice di PiFire originale restano piccole cose inutilizzate (import, variabili): le lascio per non complicare l'importazione dei loro aggiornamenti. I moduli per hardware diverso (altri display, sonde, Raspberry) restano perché sono opzioni del wizard.
 
+## Aggiornamenti OTA
+
+Da *Admin → System Updates* il grill scarica il ramo scelto di questo repository e si riavvia, senza togliere la scheda.
+
+Cosa arriva con un aggiornamento:
+- **codice, pagine e grafica**: sempre;
+- **librerie Python e passi di sistema**: solo se sono elencati in `updater/updater_manifest.json` per una *build* più nuova di quella installata. Per questo ogni volta che cambio una libreria o una configurazione di sistema aggiungo una voce al manifest e alzo il numero di build (un test lo controlla). La build 71 porta gli aggiornamenti di sicurezza delle librerie e lancia `auto-install/orangepi/ota-system.sh` (configurazione di supervisor e servizio Wi-Fi).
+
+Cosa **non** si fa via OTA: il passaggio della rete da systemd-networkd a NetworkManager (passo 6 di `setup.sh`). Fatto senza nessuno davanti potrebbe lasciare il grill fuori dalla rete, quindi resta un passo da lanciare via SSH. Sull'installazione nuova lo fa già `setup.sh`.
+
+Il primo `setup.sh` installa da `orangepi-dev`. Quando ci sarà una versione stabile (workflow *Promote to stable*), da *Admin → System Updates* si passa al ramo `orangepi-stable` e da lì in poi il grill riceve solo le versioni promosse.
+
 ## GitHub Actions
 
 - **Orange Pi tests**: a ogni push su `orangepi-dev` e `orangepi-stable` gira la suite completa su Python 3.11 e 3.13. Il confronto del simulatore viene allegato alla run, con grafico e numeri.

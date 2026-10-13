@@ -4,7 +4,7 @@
       "server" : "1.10.10",
       "cookfile" : "1.5.0",
       "recipe" : "1.0.0",
-      "build" : 70
+      "build" : 71
     },
     "update_notes" : "",
     "update_warnings" : ""
@@ -156,6 +156,24 @@
           "py_dependencies": ["bleak==3.0.1"],
           "apt_dependencies": ["bluetooth", "bluez"],
           "command_list" : [["sudo", "rfkill", "unblock", "bluetooth"]]
+        }
+      }
+    },
+    {
+      "version" : "1.10.10",
+      "build" : 71,
+      "_note" : "Orange Pi fork: security updates of the libraries, supervisor bound to 127.0.0.1, emergency Wi-Fi service",
+      "reboot_required" : false,
+      "dependencies" : {
+        "app": {
+          "py_dependencies": ["flask==3.1.3", "pillow==12.3.0", "redis==6.4.0", "zeroconf==0.151.5"],
+          "apt_dependencies": [],
+          "command_list" : [["sudo", "bash", "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"]]
+        },
+        "control": {
+          "py_dependencies": [],
+          "apt_dependencies": [],
+          "command_list" : []
         }
       }
     }

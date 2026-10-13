@@ -103,7 +103,7 @@ La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
 **Wi-Fi.** Se cambi la password del router il grill non resta irraggiungibile: dopo 3 minuti senza rete accende la rete aperta **PiFire-Setup**. Ti colleghi col telefono, si apre la pagina Wi-Fi del grill (oppure `http://10.42.0.1`) e scegli la rete con la password nuova. Da quella rete si vede solo la pagina Wi-Fi, non i comandi del grill. Dettagli in [ORANGEPI.md](ORANGEPI.md#wi-fi-e-rete-di-emergenza).
 
-**Aggiornamenti.** Non serve togliere la scheda: da *Admin → System Updates* PiFire scarica l'ultima versione dal ramo scelto di questo repository. Il grill usa `orangepi-stable`, che si aggiorna solo con una promozione manuale dopo i test.
+**Aggiornamenti.** Non serve togliere la scheda: da *Admin → System Updates* PiFire scarica l'ultima versione dal ramo scelto di questo repository, con le librerie e i passi di sistema elencati nel manifest dell'updater. Il grill usa `orangepi-stable`, che si aggiorna solo con una promozione manuale dopo i test. Dettagli in [ORANGEPI.md](ORANGEPI.md#aggiornamenti-ota).
 
 ## Rami e rilasci
 

@@ -1,179 +1,154 @@
-# ![Dashboard](static/img/launcher-icon-1x.png) PiFire
-## Raspberry Pi based Smoker Grill Controller
+# PiFire per Orange Pi Zero 2W
 
-***Note:*** *This project is continuously evolving, and thus this readme will likely be improved over time, as I find the inspiration to make adjustments.  That being said, I'm sure there will be many errors that I have overlooked or sections that I haven't updated. This project is something I've done for both fun and for self-education.  If you decide to implement this project for yourself, and run into issues/challenges, feel free to submit an issue here on GitHub.  However, I would highly encourage you to dig in and debug the issue as much as you can on your own for the sake of growing your own knowledge.  Also, I have a very demanding day job, a family, and lots of barbecue to make - so please have patience with me.*
+Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/nebhead/PiFire) di Ben Parmeter e portato su **Orange Pi Zero 2W** al posto del Raspberry Pi.
 
-***Warning:*** *The creator of this project takes no responsibility for any damage that you may do to your personal property including modifications to your smoker grill if you choose to use this project.  The creator also takes no responsibility for any resulting harm or damages that may come from issues with the hardware or software design.*  ***This project is provided for educational purposes, and should be attempted only by individuals who wish to assume all risks involved.***
+È pensato per un **Traeger Pro 22** di vecchia generazione: ventola AC, coclea e candeletta a **230 V**, controller originale sostituito dalla PCB v4.x.x di PiFire con il modulo relè SSR e la scheda ADS1115 per le sonde. Si usa dal telefono, da Home Assistant e, più avanti, da un display touch da 5″ montato sul grill.
 
-***Note: (2025-12-29)*** *Full documentation including hardware and software installation guide are now located [here](http://docs.pifire.io) at the [http://docs.pifire.io](http://docs.pifire.io).*
+![Dashboard Moderna](blueprints/dash/static/modern/img/screenshot.png)
 
-### Introduction
-This project was inspired by user dborello and his excellent PiSmoker project (http://engineeredmusings.com/pismoker/ and https://github.com/DBorello/PiSmoker).  I encourage you to check it out and get a rough idea of how this all works.  This particular project was built around a Traeger Texas smoker grill platform, but should work for most older Traeger models (or other brands with similar parts like the older Pit Boss) built with similar parts (fan, auger, and igniter).  I've built the code in a way to be somewhat modular & extensible such that you can replace the grill platform with your own specific platform instead.  Newer Traeger grills with their newer wifi enabled controllers have DC components (instead of the AC Fan / Auger) and aren't covered by this project.  
+> [!WARNING]
+> Il controller comanda carichi a 230 V e un fuoco vero. Fai i test dei relè solo con il lato 230 V scollegato, non lasciare il grill acceso senza nessuno nei paraggi finché il sistema non è collaudato, e tieni a portata di mano l'interruttore generale.
 
-Just as with the PiSmoker project, I had a few goals in mind.  I also wanted to have tighter temperature controls, wireless control, and plotting of the grill / meat temperatures.  In addition, I wanted to design this project such that original smoker controller could be used if needed.  This way, if I wanted to, I could use my controller as a monitoring device for temperatures instead of controlling the temperature and leave that up to the original controller.  Basically, it was my fallback plan in case my project didn't work out, or if I wanted to do a quick cook on the Traeger without using the fancy GUI.  **UPDATE (11/2021)** After spending lots of time with PiFire, I've finally removed the original controller in favor of using PiFire exclusively.  However, this doesn't mean that you can't still retain your original controller if you want.  Both modes work fine. 
+## Cosa cambia rispetto a PiFire
 
-### Features
+| Area | Novità |
+|---|---|
+| **Scheda** | Modulo di piattaforma `grillplat/orangepi_zero2w.py`: GPIO con libgpiod, PWM hardware via sysfs, temperatura CPU e Wi-Fi senza gli strumenti del Raspberry. Le impostazioni restano in numeri GPIO Raspberry e vengono tradotte sul pin dell'Orange Pi nella stessa posizione dell'header. |
+| **Installazione** | Script di preparazione per Armbian (Debian 13 trixie), verifica di pin, I2C, SPI e relè, installer che scarica da questo repository privato con una deploy key in sola lettura. |
+| **Controllo** | I PID ora lavorano correttamente in °C (prima i parametri, pensati in °F, davano un controllo diverso). Tolto il "colpo" derivativo del primo ciclo. |
+| **Sicurezza** | Rilevatore di fiamma spenta in Mantenimento: riduce il pellet appena sospetta lo spegnimento e avvia la riaccensione prima che il braciere si riempia di pellet crudo. Distingue il coperchio aperto. |
+| **Home Assistant** | Comandi via MQTT (modalità, temperatura, Smoke+) con regole di sicurezza; l'accensione da remoto è disattivata di default. |
+| **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
+| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda. |
+| **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
+Tutte le funzioni di PiFire restano: ricette, storico delle cotture, notifiche, Smart Start, gestione del pellet, aggiornamenti dalla web app.
 
-* WiFi Enabled Access & Control (WebUI) via computer, phone or tablet
-* Multiple Cook Modes
-	* _Startup Mode_ (fixed auger on times with igniter on)
-	* _Smoke Mode_ (fixed auger on times)
-	* _Hold Mode_ (variable auger on times) using PID for higher accuracy (multiple PID / Controller options)
-	* _Shutdown Mode_ (auger off, fan on) to burn off pellets after cook is completed
-	* _Monitor Mode_ - See temperatures of grill / probes and get notifications if using another controller or if just checking the temperatures any time.  
-	* _Manual Mode_ - Control fan, auger and igniter manually.  
-	* _Prime_ - Allows you to prime the firepot with pellets prior to a cook.  
-* Supports several different OLED and LCD screens
-	* SSD1306 OLED Display
-	* ST7789 TFT Display (240x240 resolution supported, ST7789V experimentally supported)
-	* ILI9341 TFT Display (320x240 resolution only)
-	* ILI9488 TFT Display (480x320 resolution)
-	* DSI Touch Display - Requires Raspberry Pi with DSI interface (non-Pi Zero) and is resource heavy, so Pi 3B+ or later recommended
-* Physical Button Input / Control (depending on the display, three button inputs)
-* Encoder support for, so you can control your grill with a spinny knob.
-* One (1) Grill Probe and Many Food Probes
-	* Tunable probe inputs to allow for many different probe manufacturers
-	* Supports the ADS1115 ADC, ADS1015 ADC, and MAX31865 RTD devices for measuring probes (Experimental DS18B20 and MCP9600 support added)
-	* Probe tuning tool to help develop probe profiles
-	* Any number of probe inputs, limited only by the number of devices that the Raspberry Pi can support
-	* Virtual Probes to allow you to do things like averaging probes, finding highest and lowest values of certain probes, etc.
-	* Inkbird iBBQ and Meater/Meater+ Bluetooth probe support added in v1.9.0!
-* Cook Timer - Moved to the Top Bar for Easy Access
-* Notifications (Grill / Food Probes / Timer)
-	* Supports Apprise, IFTTT, Pushover, and Pushbullet Notification Services and now MQTT!
-* Smoke Plus Feature to deliver more smoke during Smoke / Hold modes
-* Safety settings to prevent over-temp, startup failure, or firepot flameout (and overload)
-* Save temperature history for all probes / set points to a cook file that can be updated with images, notes, and even downloaded to your devices.
-* Wood Pellet Tracking Manager - Now includes estimates of pellet usage.
-* Pellet Level Sensor Support
-	* VL53L0X Time of Flight Sensor (recommended)
-	* HCSR04 Ultrasonic Sensor
-* Socket IO for Android Application Support _(GitHub User [@weberbox](https://github.com/weberbox) has made a Android client app under development here: [https://github.com/weberbox/PiFire-Android](https://github.com/weberbox/PiFire-Android))_ 
-* Recipes / Recipe Mode - Integrated recipe creation and a new mode for developing a recipe 'program' that will control the grill for you and follow the recipe that was programmed.  
-* Lid open detection during hold mode to pause the controller and prevent overshoots.  
-* ...And much more!  
+## Stato
 
-### Screenshots & Videos
+- [x] Porting del software e installer per Orange Pi
+- [x] Correzioni al controllo, rilevatore di fiamma spenta, comandi da Home Assistant
+- [x] Web app: dashboard Moderna e tema Ember
+- [ ] Prima accensione sulla scheda vera e verifica dei pin
+- [ ] Ordine PCB su JLCPCB e montaggio
+- [ ] Interfaccia per il display HDMI 5″ 1024×600 con encoder
+- [ ] Web app in italiano e installabile sul telefono
+- [ ] Case stampati in 3D
+- [ ] Taratura del simulatore sulle prime cotture vere
 
-The dashboard is where most of your key information and controls are at.  This is the screen that greets you when you access the PiFire WebUI on your computer, smart phone or tablet in a browser.
+Piano di lavoro e lista della spesa: [PiFire Orange Pi](https://claude.ai/artifact/RDBWNfmtbJo1nxR27YnyJm).
 
-![Dashboard](docs/webui/PiFire-Dashboard-01.png)
+## Hardware
 
-For those of us who like to see the data, PiFire allows you to graph and save your cook history.  It's also a great way to monitor your cook in realtime.  
+| Componente | Scelta |
+|---|---|
+| Scheda | Orange Pi Zero 2W 1 GB (Allwinner H618), con dissipatore |
+| Archiviazione | microSD |
+| Scheda principale | PCB PiFire v4.x.x (relè attivi alti) |
+| Relè | modulo SSR di PiFire per i carichi AC |
+| Sonde | ADS1115 su I2C1 (indirizzo `0x48`) per la sonda del grill e le sonde cibo |
+| Display (in arrivo) | HDMI 5″ IPS 1024×600 capacitivo (MPI5006) + encoder KY-040 |
+| Ventola | AC originale. Upgrade a ventola DC PWM previsto come opzione futura |
 
-![History](docs/webui/PiFire-History-00.png)
+Mappa dei pin, collegamenti e precauzioni (console seriale sui pin 8 e 10, pin 33 senza PWM hardware) sono in [ORANGEPI.md](ORANGEPI.md#mappa-dei-pin-pcb-v4--orange-pi-zero-2w).
 
-PiFire also provides an optional Pellet Manager which can help you track your pellet usage, store ratings, check your pellet level if you have a pellet sensor equipped.  
+## Installazione
 
-![Pellet Manager](docs/webui/PiFire-PelletManager-00.png)
+La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
-This is what PiFire looks like on your mobile device.  And in these screen shots you'll notice that we have dark mode enabled.  This helps for viewing at night, or just if you like the dark theme better.  Personally I think it looks pretty slick.  
+1. Armbian **Debian 13 trixie Minimal** sulla microSD, Wi-Fi configurato, kernel bloccato con `armbian-config`.
+2. Chiave SSH di root sull'Orange Pi, aggiunta come **deploy key in sola lettura** di questo repository.
+3. Clone e preparazione:
+   ```bash
+   sudo GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" \
+     git clone -b orangepi-dev git@github.com:cannos88/pifire-orangepi.git /opt/pifire-setup
+   sudo bash /opt/pifire-setup/auto-install/orangepi/setup.sh
+   ```
+4. Verifica: `sudo python3 /opt/pifire-setup/auto-install/orangepi/opi_check.py`
+5. Wizard su `http://<indirizzo-orange-pi>`: piattaforma *PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W*, relè *Active High*, ventola *AC*, unità °C.
 
-![Mobile Dashboard](docs/webui/PiFire-Mobile-00.jpg)
+## Uso
 
-![Mobile History](docs/webui/PiFire-Mobile-01.jpg)
+**Web app.** Dal telefono o dal PC apri l'indirizzo dell'Orange Pi. La dashboard Moderna mostra temperatura, modalità e tempo di cottura, permette di accendere, passare tra Affumicatura e Mantenimento, cambiare la temperatura (con preset), attivare Smoke+, impostare i target delle sonde e un timer. Accensione, spegnimento e Stop chiedono conferma. Le pagine classiche di PiFire (Storico, Ricette, Eventi, Impostazioni, Admin) restano disponibili con lo stesso tema.
 
-Below is an example comparison that I did on a real cook of the Traeger controller attempting to hold 275F and the PiFire holding at the same temperature.  The difference is very impressive.  The Traeger swings massively up to 25F over and under the set temperature.  However the PID in from PiSmoker does a great job holding roughly +-7 degrees.  And this is without any extra tuning. 
+**Home Assistant.** In *Settings → Notifications → MQTT* abilita MQTT con l'autodiscovery e, se vuoi comandare il grill, *Allow remote control*. Compaiono le entità Grill Mode, Hold Temperature e Smoke Plus. Le regole di sicurezza sono descritte in [ORANGEPI.md](ORANGEPI.md#home-assistant).
 
-![Performance](docs/photos/SW-Performance.jpg)
+**Aggiornamenti.** Non serve togliere la scheda: da *Admin → System Updates* PiFire scarica l'ultima versione dal ramo scelto di questo repository. Il grill usa `orangepi-stable`, che si aggiorna solo con una promozione manuale dopo i test.
 
-Here's a brief YouTube video giving a basic overview of the PiFire web interfaces.
+## Rami e rilasci
 
-### PiFire Overview Video
+| Ramo | Contenuto |
+|---|---|
+| `orangepi-dev` | Sviluppo del porting (ramo predefinito) |
+| `orangepi-stable` | Versione installata sul grill, aggiornata solo dal workflow *Promote to stable* |
+| `main` | Copia di PiFire originale, per importare i loro aggiornamenti |
 
-I recommend at least taking a peek at the PiFire overview video below.  It covers the basics of operation, settings and control.  
+GitHub Actions:
+- **[Orange Pi tests](https://github.com/cannos88/pifire-orangepi/actions/workflows/orangepi-tests.yml)**: a ogni push su `orangepi-dev` e `orangepi-stable`, test su Python 3.11 e 3.13, controllo degli script e confronto dei controller sul simulatore (report scaricabile dalla pagina del run).
+- **Promote to stable**: si avvia a mano dalla scheda *Actions*; ripete i test e, se passano, porta `orangepi-stable` allo stato di `orangepi-dev` con un tag `stable-AAAAMMGG-HHMM`.
 
-[![YouTube Demo](docs/photos/Video-Link-Image-sm.png)](https://youtu.be/zifl0_sfFBA)
+Per importare gli aggiornamenti di PiFire originale:
+```bash
+git fetch upstream
+git checkout main && git merge --ff-only upstream/main
+git checkout orangepi-dev && git merge main
+```
 
-[Link to our channel on YouTube](https://www.youtube.com/channel/UCYYs50U5QvHHhogx_rqs0Yg)
+## Sviluppo
 
-Pictured below is version 2.0 of the hardware w/TFT screen and hardware buttons in a custom 3D printed enclosure. 
+Test (non serve hardware: GPIO e Redis sono simulati):
+```bash
+pip install -r tests/requirements.txt
+python -m pytest tests -q
+```
 
-![Hardware v2](docs/photos/HW-V2-Display.jpg)
+Simulatore del grill, per confrontare i controller e provare scenari come coperchio aperto o fiamma spenta:
+```bash
+python -m tools.grill_sim --compare pid pid_ac pid_sp pid_clamping --plot confronto.png
+python -m tools.grill_sim --scenario flameout --no-flameout-detect
+```
 
-And if you're interested in seeing more builds from other users, we have a discussions thread [here](https://github.com/nebhead/PiFire/discussions/28) or on [Discord](https://discord.gg/F9mbCrbrZS) (see below) where others have posted pictures of their unique builds.  
+Web app in locale, con la piattaforma *prototype* che finge sonde e relè: servono `redis-server` e i pacchetti dell'installer, poi `python control.py` in un terminale e `gunicorn -k eventlet -b 127.0.0.1:8000 -w 1 app:app` in un altro.
 
-## Full Documentation / Hardware and Software Installation
+Struttura delle parti nuove:
 
-The full documentation has been moved to a GitHub page here: [http://docs.pifire.io](http://docs.pifire.io)
+| Percorso | Contenuto |
+|---|---|
+| `grillplat/orangepi_zero2w.py`, `grillplat/opi_gpio.py` | Piattaforma Orange Pi e traduzione dei pin |
+| `auto-install/orangepi/` | Preparazione del sistema (`setup.sh`) e verifica (`opi_check.py`) |
+| `controller/flameout.py` | Rilevatore di fiamma spenta |
+| `notify/mqtt_control.py` | Comandi da Home Assistant e regole di sicurezza |
+| `dashboard/modern.json`, `blueprints/dash/*/modern/` | Dashboard Moderna |
+| `static/css/ember.css`, `static/font/barlow/` | Tema Ember e font |
+| `tools/grill_sim/` | Simulatore del grill |
+| `tests/` | Test automatici |
+| `docs-orangepi/` | Bozze grafiche del display |
 
-### Discord
-I've added a discord server [here](https://discord.gg/F9mbCrbrZS) which can be a great resource for all who want to get more information, want to share their own builds, or just chat about pellet cooking.  Looking forward to seeing you there. 
+## Documentazione
 
-### Updates
+- [ORANGEPI.md](ORANGEPI.md): guida completa del porting (installazione, pin, note hardware, fiamma spenta, Home Assistant, simulatore).
+- [Documentazione di PiFire](http://docs.pifire.io): funzioni generali, hardware originale, impostazioni, ricette, API.
+- [Repository originale nebhead/PiFire](https://github.com/nebhead/PiFire) e il suo [Discord](https://discord.gg/F9mbCrbrZS).
+- [Armbian per Orange Pi Zero 2W](https://www.armbian.com/orangepizero2w/).
+- Mockup della web app: [PiFire Web App](https://claude.ai/artifact/Jf3y8ExsQ29xC1qzHDu1rX).
 
-* 9/2020 - Initial Release
-* 12/2020 - Moved documentation to [https://nebhead.github.io/PiFire-Pages](https://nebhead.github.io/PiFire-Pages)
-* 11/2021 - Many new features, bug fixes, and improvements.  New hardware support etc. which have been in incorporated over the last year, have been merged from the development branch
-* 4/2022 - Release v1.3.1 - Another HUGE release with many new features including an updater, a new configuration wizard, bug fixes, Smart Start feature and much, much more!
-* 6/2022 - Release v1.3.3 - Lot's of changes for this latest stable release for June 2022. It's been a busy couple of months and we've had a few bug fixes pulled into this latest version, including an installer bug. The display modules have been completely overhauled in this latest release to improve responsiveness and capabilities. We've added a module for the ILI1394 with rotary encoder support, which is a nice option for those who like to use a dial with push button to interface the menu system. When doing the update, consider doing a full reboot (instead of just restarting the server) to ensure connected display devices are fully reset.
-* 7/2022 - Release v1.3.4 - Another monthly release with some bug fixes and some new features. The biggest new feature of this month was the addition of Annotations in the history graph. This gives you helpful tags on the graph (see below) with indicators of the mode changes. Of course you can turn this off in the history page if you don't like it.
-* 10/2022 - Release v1.3.5 - Bug fixes, feature refinements and brand new features galore in this latest release.  Added a new ADS1115 module (using Adafruits Circuit Python), due to some reports of issues with the existing ADS1115 module. These can be optionally selected in the configuration wizard.  PWM Fan Support and a boatload of code cleanup was introduced, thanks to contributor @weberbox.  Support for saving cook files was introduced in this version, so that you can go back to older cooks, edit some of the information and add images and comments.  Added a Prime Mode to allow you to prime the fire pot with pellets prior to a cook, and even prime & startup.  Added estimated pellet usage to the pellet manager, which will attempt to track just how many pellets you have used since your last load of pellets.  Added Apprise notification capability thanks to contributor @calonmerc.  320x200 displays have been update and added timers to specific modes. And even more!  
-* 6/2023 - Release v1.5.0 - Arguably one of the biggest overhauls to PiFire since it's inception.  The Probe system has been completely refactored to allow for multiple probe sensing devices (i.e. ADS1115, MAX31865, or even Virtual Probes to augment your inputs).  This extension of the probe system, allows for any number of probe inputs to be tracked in PiFire, allowing from notifications and tracking of history for each probe.  The sky is the limit!  With this change the the probe architecture, a number of other things needed to be modified/updated, including the notification system, the history/charting, the dashboards, cookfiles and recipe modes.  Note that if you are updating to this version, your settings will be upgraded in the process and you will not be able to roll back to a previous version (unless you restore from a backup of your settings).  
-* 11/2023 - Release v1.6.0 - In this month comes another huge update with lots of new features and bug fixes.  Many thanks to the users from discord that have been testing along the way (as well as submitting some bugs), what a great community we have!  Many of these features have been deployed on our development branch for some time, so they should be relatively stable.  Please do file issues on GitHub if you find any new bugs with the formal release.  With that, enjoy and happy grilling/smoking!
-* 5/2024 - Release v1.7.0 - Lot's of new updates in this release with the UI, new features (i.e. exit startup temp, etc.) and new device support.  Some improvements to the tuning tools (including an auto-tuning tool).  Under the covers improvements for stability and cleanup.  As usual, submit issues to GitHub if you run into anything.  Enjoy!
-* 9/2024 - Release v1.8.0 - Overhaul of the configuration wizard and underlying platform pin definitions to support board selection and configuration versus the platform selection that was previously provided.  This allows much more flexibility when it comes to custom pinouts.  This version now supports the PCB v4.x modular design allowing the ability to mix and match probe devices, relay/fan hardware, etc.
-* **4/2025 - Release v1.9.0** - Almost too many new features and bug fixes to include in a short blurb here.  This release brings an overhaul to Manual Mode, moving the manual controls to the control panel with a PWM slider.  Added the ability to override outputs(igniter, auger, fan) on the default dashboard (and on the flex display).  Added new notifications for high and low temperature limits for each probe.  Added Bluetooth probe support for Inkbird iBBQ and some Meater devices.  Added three new PID controllers which further improve performance of the default PID.  New display support for different devices.  Some probe configuration can be done from the settings page and from the Default Dashboard.  Lid/Door Pause button added to Default Dashboard to manually pause the PID.  And much more!
-* **10/2025 - Release v1.10.0** - It only seems appropriate to release the v1.10.0 in October (the 10th month)!  Lot's of behind the scenes improvements to PiFire, improving the installer, updating package versions, improving the web front-end code structure so that it is more modular.  Also more feature improvements including the addition of a new Bluetooth device, WLED integration, etc.  More details in the release notes.
-* 12/2025 - Documentation has moved to [http://docs.pifire.io](http://docs.pifire.io). Many thanks to Discord user @therooster for securing the domain. 
+## Crediti
 
-### Credits
+**PiFire** è di Ben Parmeter e dei suoi contributori ([github.com/nebhead](https://github.com/nebhead/PiFire)); questo repository ne è una derivazione personale. Il controller PID viene da **PiSmoker** di Dan Borello ([github](https://github.com/DBorello/PiSmoker)).
 
-Web Application created by Ben Parmeter, copyright 2020-2025. Check out my other projects on [github](https://github.com/nebhead). If you enjoy this software and feel the need to donate a cup of coffee, a frosty beer or a bottle of wine to the developer you can click [here](https://paypal.me/benparmeter).
+Componenti di terze parti inclusi o usati da PiFire:
+- **Bootstrap 4** (MIT, Twitter), **jQuery** (MIT, JS Foundation), **Popper** (MIT, Federico Zivolo)
+- **Chart.js** (MIT, Chart.js Contributors)
+- **Font Awesome Free** (Font Awesome Free License)
+- **Circliful** (MIT, Patric Gutersohn), **SVG Gauge** (MIT, Aniket Naik), **Bootstrap Color Picker** (MIT, Javi Aguilar)
+- **Luma OLED** (MIT, Richard Hull) e **ADS1115** (David H Hagan), non distribuiti ma usati dai moduli
+- **Barlow** e **Barlow Condensed** di Jeremy Tribby, SIL Open Font License 1.1 ([testo della licenza](static/font/barlow/OFL.txt))
 
-Of course, none of this project would be available without the wonderful and amazing folks below.  If I forgot anyone please don't hesitate to let me know.  
+## Licenza
 
-* **PiSmoker** - The project that served as the inspiration for this project and where the PID controller is wholesale borrowed from.  Special mention to Dan for providing encouraging feedback from day one of this project.  Many thanks!  Copyright Dan Borello. [engineeredmusings.com](http://engineeredmusings.com/pismoker/) [github](https://github.com/DBorello/PiSmoker)
-
-* **Circliful** - Beautiful Circle Gauges on the dashboard. Extra special mention for Patric for providing great support to me via GitHub.  Copyright Patric Gutersohn & other contributors. [gutersohn.com](http://gutersohn.com/) [github](https://github.com/pguso/js-plugin-circliful)
-
-* **SVG Gauge** - Credits to Aniket Naik for the excellent SVG-Gauge. Released under the MIT License Copyright (c) 2016 [(github profile)](https://github.com/naikus) [github.com](https://github.com/naikus/svg-gauge)
-
-* **Bootstrap Color Picker** - Color picker for configuring the chart line colors. Copyright (c) 2017 Javi Aguilar. Released under MIT license. [github](https://github.com/itsjavi/bootstrap-colorpicker)
-
-* **Bootstrap** - WebUI Based on Bootstrap 4.  Bootstrap is released under the MIT license and is copyright 2018 Twitter. [getbootstrap.com](http://getbootstrap.com)
-
-* **JQuery** - Required by Bootstrap. Copyright JS Foundation and other contributors. Released under MIT license. [jquery.org/license](https://jquery.org/license/)
-
-* **Popper** - Required by Bootstrap. Copyright 2016, 2018 FEDERICO ZIVOLO & CONTRIBUTORS. Released under MIT license. [popper.js.org](https://popper.js.org/)
-
-* **Chartjs** - For the fancy charts. Copyright 2018 Chart.js Contributors. Released under MIT license. [chartjs.org](https://chartjs.org/)
-
-* **FontAwesome** - Amazing FREE Icons that I use throughout this project.  Copyright Font Awesome.  Released under the Font Awesome Free License. [fontawesome.com](https://fontawesome.com/) [github.com](https://github.com/FortAwesome/Font-Awesome)
-
-* **Luma OLED** - The OLED display module for Python that I use.  This is not distributed in this project, but deserves a shout-out.  Copyright 2014-2020 Richard Hull and contributors. Released under MIT License. [readthedocs.io](https://luma-oled.readthedocs.io/en/latest/) [github.com](https://github.com/rm-hull/luma.oled)
-
-* **ADS1115 Python Module** - Python module to support the ADS1115 16-Bit ADC. Also not actually distributed with this project, but also deserveds recognition.  Copyright David H Hagan. [pypi.com](https://pypi.org/project/ADS1115/) [github.com](https://github.com/vincentrou/ads1115_lib)
-
-* **Other Adafruit Modules** - Multiple Adafruit modules were also leveraged in the making of this project and deserve recognition, even if they aren't distributed in the project.  
-
-* **Contributions from the Community** - Thank you to those of you who have rolled up your sleeves, built out this project and contributed back. Whether that be with contributions to the code, designing new hardware, ideas and suggestions, or with a coffee that you bought me along the way.  Thank you very much, you keep this project running!
-
-### Licensing
-
-This project is licensed under the MIT license.
+MIT, come PiFire. Il testo completo è in [license.txt](license.txt).
 
 ```
-MIT License
-
-Copyright (c) 2020 - 2025 Ben Parmeter and Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Copyright (c) 2020-2025 Ben Parmeter and Contributors
+Modifiche per Orange Pi Zero 2W: Copyright (c) 2026 Carmelo (cannos88)
 ```

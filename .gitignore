@@ -99,6 +99,7 @@ test_server_status.py
 
 # General patterns for test files
 test_*.py
+!tests/**/test_*.py
 debug_*.py
 debug_*.html
 *_test.py

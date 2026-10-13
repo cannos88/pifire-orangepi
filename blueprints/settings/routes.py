@@ -168,6 +168,9 @@ def settings_page(action=None):
             settings['notify_services']['mqtt']['homeassistant_autodiscovery_topic'] = response['mqtt_auto_d']
         if 'mqtt_freq' in response:
             settings['notify_services']['mqtt']['update_sec'] = response['mqtt_freq']
+        if 'mqtt_id' in response:  # Only when the MQTT card was submitted
+            settings['notify_services']['mqtt']['control'] = is_checked(response, 'mqtt_control')
+            settings['notify_services']['mqtt']['allow_remote_startup'] = is_checked(response, 'mqtt_remote_startup')
 
         if 'delete_device' in response:
             DeviceID = response['delete_device']

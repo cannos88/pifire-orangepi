@@ -19,9 +19,9 @@ import json
 import logging
 import time
 from socket import getfqdn
-from common import create_logger
+from common import create_logger, process_command, read_control
+from notify.mqtt_control import handle_command, discovery_entities
 import psutil
-#from common import write_control
 
 
 class MqttNotificationHandler:
@@ -51,6 +51,7 @@ class MqttNotificationHandler:
 
 			# Create shortcuts to settings we will use frequently
 			self._global_settings = settings['globals']
+			self._units = settings['globals']['units']
 			self._probe_settings  = settings['probe_settings']['probe_map']['probe_info']
 			self._mqtt_settings   = settings['notify_services']['mqtt']
 
@@ -149,38 +150,31 @@ class MqttNotificationHandler:
 		for sub in self.subscriptions:
 			self._subscribe(sub)
 
+		# Remote control (Home Assistant): command topics and their discovery entities
+		if self._mqtt_settings.get('control', False):
+			self._subscribe(f"{self.pifire_id}/command/+")
+			if self._check_homeassistant():
+				for component, object_id, config in discovery_entities(self.pifire_id, self.default_payload['device'],
+																	   self.default_payload['availability'], self._units):
+					self._publish_autodiscover(f'control_{object_id}',
+						f"{self.discovery_topic}/{component}/{self.pifire_id}/{object_id}/config", json.dumps(config))
+
 	def _on_message(self, client, userdata, msg):
-		
-		# Ignore if we haven't finished intializing or haven't enabled control
-		#if self.control == None: return
-		#if self._mqtt_settings['control'] == False: return
-		
-		# element = msg.topic.split('/')[-1]
-		# payload = msg.payload.decode('utf-8')
-
-		# self._mqttLogger.debug(f"Recieved message {payload} for {element}")
-
-		# if element == "mode":
-		# 		# If going into Hold mode we need to set the setpoint as well.  Default to 150 if not set.
-		# 		if payload == 'Hold':
-		# 			self.control['primary_setpoint'] = max(self.control['primary_setpoint'], 150)
-
-		# 		self.control[element] = payload
-		# 		self.control['updated'] = 'yes'
-		# 		write_control(self.control, direct_write=False, origin='mqtt')
-
-		# 		#TODO when switching to HOLD mode we also need to send a setpoint
-
-		# elif element == "primary_setpoint":
-		# 		#Only adjust the setpoint if we are in Hold mode
-		# 		if (self.control['mode']) == 'Hold':
-		# 			self.control[element] = int(payload)
-		# 			self.control['updated'] = 'yes'
-		# 			write_control(self.control, direct_write=False, origin='mqtt')
-
-		# 	else:
-		# 		pass
-		pass
+		''' Remote control commands on <id>/command/<name> (see notify/mqtt_control.py) '''
+		try:
+			command = msg.topic.split('/')[-1]
+			payload = msg.payload.decode('utf-8')
+			arglist, reason = handle_command(command, payload, read_control(), self._mqtt_settings, self._units)
+			if arglist is None:
+				result = {'result': 'REFUSED', 'message': reason}
+				self._mqttLogger.warning(f"MQTT command {command}={payload} refused: {reason}")
+			else:
+				result = process_command(action='set', arglist=arglist, origin='mqtt')
+				self._mqttLogger.info(f"MQTT command {command}={payload}: {result['result']} {result['message']}")
+			result = {'command': command, 'value': payload, 'result': result['result'], 'message': result['message']}
+			self._publish_data(topic=f"{self.pifire_id}/command/result", payload=json.dumps(result))
+		except:
+			self._mqttLogger.exception('Error processing an MQTT command: ')
 
 	def _on_disconnect(self, client, userdata, rc, properties):
 		if rc != 0:
@@ -267,7 +261,8 @@ class MqttNotificationHandler:
 
 		if not change_detected: return
 		
-		if self._publish_data(topic=f"{self._mqtt_settings['id']}/{context}", payload=json.dumps(payload)):
+		# The control state is retained so Home Assistant shows mode and set point right after a restart
+		if self._publish_data(topic=f"{self._mqtt_settings['id']}/{context}", payload=json.dumps(payload), retain=(context == 'control')):
 
 			# Publish home assitant auto-discovery info
 			if self._check_homeassistant:

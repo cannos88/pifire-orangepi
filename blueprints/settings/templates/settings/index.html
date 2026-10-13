@@ -1799,6 +1799,20 @@
                                         add PiFire and its devices if you specify the discovery topic name here.
                                     </i>
                                     <br><br>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="mqtt_control" name="mqtt_control" {% if settings['notify_services']['mqtt'].get('control', False) %}checked{% endif %}>
+                                        <label class="custom-control-label" for="mqtt_control">Allow remote control (mode, hold temperature, Smoke Plus)</label>
+                                    </div>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="mqtt_remote_startup" name="mqtt_remote_startup" {% if settings['notify_services']['mqtt'].get('allow_remote_startup', False) %}checked{% endif %}>
+                                        <label class="custom-control-label" for="mqtt_remote_startup">Also allow remote Startup</label>
+                                    </div>
+                                    <span class="badge badge-warning">NOTE:</span>
+                                    <i class="small">
+                                        Hold temperature, Smoke and Hold are accepted only while the fire is burning, and Shutdown is always accepted.
+                                        Remote Startup turns on the igniter with nobody at the grill: enable it only if you can watch the grill.
+                                    </i>
+                                    <br><br>
                                 </div><!-- End of card body -->
                             </div><!-- End of card body -->
                             <br>

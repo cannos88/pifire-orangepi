@@ -193,8 +193,8 @@ def run_wizard(settings, WizardData, WizardInstallInfo):
 
 	''' Set the grillplatform module per the system_type '''
 	settings['modules']['grillplat'] = 'prototype'
-	if settings['platform']['system_type'] == 'raspberry_pi_all':
-		settings['modules']['grillplat'] = 'raspberry_pi_all'
+	if settings['platform']['system_type'] in ('raspberry_pi_all', 'orangepi_zero2w'):
+		settings['modules']['grillplat'] = settings['platform']['system_type']
 
 	# Commit Settings to JSON
 	write_settings(settings)

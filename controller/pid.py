@@ -66,7 +66,7 @@ class Controller(ControllerBase):
 		else: 
 			self.inter_max = 0
 
-		self.last = 150
+		self.last = None  # No previous reading yet (no derivative on the first update)
 
 		self.set_target(0.0)
 
@@ -82,6 +82,9 @@ class Controller(ControllerBase):
 		self.kd = self.kp * td
 
 	def update(self, current):
+		current = self._to_internal(current)
+		if self.last is None:
+			self.last = current
 		# P
 		error = current - self.set_point
 		self.p = self.kp * error + self.center # p = 1 for pb / 2 under set_point, p = 0 for pb / 2 over set_point
@@ -111,7 +114,7 @@ class Controller(ControllerBase):
 		return self.u
 
 	def set_target(self, set_point):
-		self.set_point = set_point
+		self.set_point = self._to_internal(set_point)
 		self.error = 0.0
 		self.inter = 0.0
 		self.derv = 0.0

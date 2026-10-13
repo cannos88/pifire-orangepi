@@ -88,6 +88,7 @@ class Controller(ControllerBase):
 		eventLogger.debug('kp: ' + str(self.kp) + ', ki: ' + str(self.ki) + ', kd: ' + str(self.kd))
 
 	def update(self, current):
+		current = self._to_internal(current)
 		# dt
 		dt = time.time() - self.last_update
 
@@ -130,7 +131,7 @@ class Controller(ControllerBase):
 		return self.u
 
 	def set_target(self, set_point):
-		self.set_point = set_point
+		self.set_point = self._to_internal(set_point)
 		self._calculate_gains()
 		self.error = 0.0
 		self.inter = 0.0

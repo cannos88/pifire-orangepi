@@ -77,7 +77,7 @@ class Controller(ControllerBase):
 		self.derv = 0.0
 		self.inter = 0.0
 
-		self.last = 150
+		self.last = None  # No previous reading yet (no derivative on the first update)
 		self.start_change_temp = 0.0
 		self.new_target = False
 
@@ -99,9 +99,12 @@ class Controller(ControllerBase):
 		current_time = time.time()
 		dt = current_time - self.last_update
 	
-		# Fix self.last being set to 0.0 on set point change
-		if self.last == 0.0 and self.new_target:
+		current = self._to_internal(current)
+		# No previous reading yet: start from the current temperature (no derivative kick)
+		if self.last is None or (self.last == 0.0 and self.new_target):
 			self.last = current
+			if self.start_change_temp is None:
+				self.start_change_temp = current
 	
 		# Error Calculation
 		error = current - self.set_point
@@ -159,7 +162,7 @@ class Controller(ControllerBase):
 		return self.u
 	
 	def set_target(self, set_point):
-		self.set_point = set_point
+		self.set_point = self._to_internal(set_point)
 		self.error = 0.0
 		self.inter = 0.0
 		self.derv = 0.0
@@ -168,16 +171,11 @@ class Controller(ControllerBase):
 		self.start_change_temp = self.last
 		self.new_target = True
 		# Dynamically set self.center depending on set_point. Higher centers are needed to achieve higher temps, lower centers for lower temps.
-		if self.units == "F":
-			if set_point <= 240:
-				self.center = set_point * self.center_factor
-			else:
-				self.center = set_point * self.center_factor * 1.2
-		elif self.units == "C":
-			if set_point <= 115:
-				self.center = (set_point * 9/5 + 32) * self.center_factor
-			else:
-				self.center = (set_point * 9/5 + 32) * self.center_factor * 1.2
+		# (set_point is already in F, see set_target)
+		if self.set_point <= 240:
+			self.center = self.set_point * self.center_factor
+		else:
+			self.center = self.set_point * self.center_factor * 1.2
     
 	def set_gains(self, pb, ti, td):
 		self._calculate_gains(pb,ti,td)

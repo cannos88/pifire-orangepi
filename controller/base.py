@@ -34,6 +34,17 @@ class ControllerBase:
 			'set_units'	
         ]
 
+	def _to_internal(self, temp):
+		'''
+		PID tuning values (PB, stable windows, the defaults in controllers.json)
+		are expressed in degrees Fahrenheit.  When PiFire runs in Celsius, convert
+		temperatures to Fahrenheit before the controller math, so the same
+		settings give the same behaviour in both units.
+		'''
+		if self.units == 'C' and temp is not None:
+			return temp * 9 / 5 + 32
+		return temp
+
 	def update(self, current):
 		'''
 		Input:

@@ -1,0 +1,18 @@
+# PiFire Wi-Fi service: emergency network "PiFire-Setup" and Wi-Fi setup page.
+# Installed by auto-install/orangepi/setup.sh (step 6).
+[Unit]
+Description=PiFire Wi-Fi (rete di emergenza PiFire-Setup)
+After=NetworkManager.service redis-server.service
+Wants=NetworkManager.service
+ConditionPathExists=/usr/local/bin/pifire/wifi/service.py
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/bin/pifire
+# Python of the PiFire installation (uv or venv layout), system Python as a last resort
+ExecStart=/bin/sh -c 'for p in /usr/local/bin/pifire/.venv/bin/python /usr/local/bin/pifire/bin/python /usr/bin/python3; do [ -x "$p" ] && exec "$p" -m wifi.service; done; exit 1'
+Restart=always
+RestartSec=20
+
+[Install]
+WantedBy=multi-user.target

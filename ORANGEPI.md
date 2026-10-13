@@ -24,6 +24,7 @@ Fatto:
 - **Comandi da Home Assistant** via MQTT, con regole di sicurezza.
 - **Simulatore del grill** (`tools/grill_sim`) e **test automatici** su GitHub a ogni push.
 - **Web app**: dashboard *Moderna* e tema scuro *Ember* per tutte le pagine (vedi sotto).
+- **Rete Wi-Fi di emergenza**: se il grill resta senza Wi-Fi accende la rete aperta *PiFire-Setup* per sceglierne una nuova dal telefono (vedi sotto).
 - **Correzioni a PiFire**: in °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati (es. target e attivazione) si annullavano a vicenda.
 
 Prossimi passi: modulo display HDMI 1024×600, traduzione italiana e app installabile, taratura del simulatore sulle prime cotture vere.
@@ -72,7 +73,8 @@ Lo script chiede conferma prima di ogni passo:
 3. disattivazione della console seriale, necessaria solo per tasti/encoder sui pin 8 e 10;
 4. overlay I2C1 (pin 3 e 5, ADS1115) e SPI1;
 5. verifica della chiave di accesso a GitHub;
-6. installer di PiFire, dopo il riavvio se sono cambiate impostazioni di boot.
+6. rete Wi-Fi di emergenza: NetworkManager e servizio `pifire-wifi` (vedi [Wi-Fi e rete di emergenza](#wi-fi-e-rete-di-emergenza));
+7. installer di PiFire, dopo il riavvio se sono cambiate impostazioni di boot o di rete.
 
 Se un overlay non viene riconosciuto, lo script mostra l'elenco di quelli disponibili. Mandamelo e aggiorno lo script: i nomi cambiano tra l'immagine Orange Pi e Armbian.
 
@@ -134,6 +136,26 @@ Il rilevatore guarda l'andamento in Hold:
 3. **Coperchio aperto**: fa scendere la temperatura molto più in fretta di un fuoco spento, quindi un calo rapido mette in pausa il rilevatore per 5 minuti.
 
 Nel simulatore (fuoco spento a 110 °C): PiFire originale riaccende dopo 28 minuti con circa 450 g di pellet nel braciere e un picco di 320 °C alla riaccensione; con il rilevatore riaccende dopo circa 6 minuti con circa 50 g e un picco di 190 °C. Coperchio aperto da 1 a 10 minuti: nessun falso allarme. Si disattiva con `"flameout_detect": false` nella sezione `safety` di `settings.json`.
+
+## Wi-Fi e rete di emergenza
+
+Il passo 6 di `setup.sh` affida la rete a NetworkManager (l'immagine Armbian *Minimal* usa systemd-networkd; la rete già configurata resta) e installa il servizio `pifire-wifi`.
+
+**Se cambi la password del router, o porti il grill su un'altra rete:**
+1. il grill prova le reti salvate; dopo **3 minuti** senza Wi-Fi accende la rete **PiFire-Setup**, aperta, senza password;
+2. col telefono ti colleghi a *PiFire-Setup*: si apre da sola la pagina Wi-Fi del grill (se non si apre, vai su `http://10.42.0.1`);
+3. scegli la rete, scrivi la password e premi *Collega*: la rete di emergenza si spegne e il grill si collega;
+4. ricollega il telefono alla rete di casa e apri `http://<nome-del-grill>.local` (l'indirizzo comparirà anche sul display).
+
+Se la password è sbagliata, *PiFire-Setup* ricompare entro un minuto. Se il router era solo spento, il grill lo ritrova da solo: ogni 5 minuti spegne la rete di emergenza per un minuto e riprova le reti salvate (non lo fa mentre qualcuno sta usando la pagina).
+
+**Meglio ancora, prima di cambiare la password:** da *Dashboard → Wi-Fi* (`http://<nome-del-grill>.local/wifi`) aggiungi la rete con la password nuova e premi *Salva per dopo*. Il grill resta sulla rete attuale e passa a quella nuova appena serve.
+
+**Sicurezza:** chi si collega a *PiFire-Setup* vede solo la pagina Wi-Fi. Dashboard, comandi e impostazioni vengono rimandati lì, quindi dalla rete aperta il grill non si accende e non si comanda. La cottura in corso non si ferma se cade il Wi-Fi.
+
+Il servizio scrive lo stato in Redis (`wifi:status`: modalità, rete, indirizzo, nome e QR della rete di emergenza): il display da 5″ lo userà per mostrare la schermata *"Collegati a PiFire-Setup e apri http://10.42.0.1"* con il QR per collegarsi.
+
+Comandi utili via SSH: `systemctl status pifire-wifi`, `journalctl -u pifire-wifi -f`, `nmcli device wifi list`.
 
 ## Home Assistant
 

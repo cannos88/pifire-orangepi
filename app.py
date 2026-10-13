@@ -64,6 +64,8 @@ from blueprints.recipes import recipes_bp
 from blueprints.settings import settings_bp
 from blueprints.wizard import wizard_bp
 from blueprints.update import update_bp
+from blueprints.wifi import wifi_bp
+from blueprints.wifi.guard import client_ip, is_emergency_client, allowed_on_emergency
 
 ''' Register Flask Blueprints '''
 app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -83,6 +85,14 @@ app.register_blueprint(recipes_bp, url_prefix='/recipes')
 app.register_blueprint(settings_bp, url_prefix='/settings')
 app.register_blueprint(wizard_bp, url_prefix='/wizard')
 app.register_blueprint(update_bp, url_prefix='/update')
+app.register_blueprint(wifi_bp, url_prefix='/wifi')
+
+@app.before_request
+def emergency_network_guard():
+	''' Phones on the open emergency Wi-Fi only get the Wi-Fi setup page (Orange Pi fork). '''
+	from flask import request
+	if is_emergency_client(client_ip(request.remote_addr, request.headers)) and not allowed_on_emergency(request.path):
+		return redirect('/wifi/')
 
 '''
 ==============================================================================

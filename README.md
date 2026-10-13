@@ -19,6 +19,7 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Sicurezza** | Rilevatore di fiamma spenta in Mantenimento: riduce il pellet appena sospetta lo spegnimento e avvia la riaccensione prima che il braciere si riempia di pellet crudo. Distingue il coperchio aperto. |
 | **Home Assistant** | Comandi via MQTT (modalità, temperatura, Smoke+) con regole di sicurezza; l'accensione da remoto è disattivata di default. |
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
+| **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
 | **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda. |
 | **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
@@ -43,6 +44,7 @@ Toccando la scheda di una sonda si imposta il target, con i valori tipici a port
 - [x] Porting del software e installer per Orange Pi
 - [x] Correzioni al controllo, rilevatore di fiamma spenta, comandi da Home Assistant
 - [x] Web app: dashboard Moderna e tema Ember
+- [x] Rete Wi-Fi di emergenza e pagina Wi-Fi
 - [ ] Prima accensione sulla scheda vera e verifica dei pin
 - [ ] Ordine PCB su JLCPCB e montaggio
 - [ ] Interfaccia per il display HDMI 5″ 1024×600 con encoder
@@ -98,6 +100,8 @@ La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
 **Home Assistant.** In *Settings → Notifications → MQTT* abilita MQTT con l'autodiscovery e, se vuoi comandare il grill, *Allow remote control*. Compaiono le entità Grill Mode, Hold Temperature e Smoke Plus. Le regole di sicurezza sono descritte in [ORANGEPI.md](ORANGEPI.md#home-assistant).
 
+**Wi-Fi.** Se cambi la password del router il grill non resta irraggiungibile: dopo 3 minuti senza rete accende la rete aperta **PiFire-Setup**. Ti colleghi col telefono, si apre la pagina Wi-Fi del grill (oppure `http://10.42.0.1`) e scegli la rete con la password nuova. Da quella rete si vede solo la pagina Wi-Fi, non i comandi del grill. Dettagli in [ORANGEPI.md](ORANGEPI.md#wi-fi-e-rete-di-emergenza).
+
 **Aggiornamenti.** Non serve togliere la scheda: da *Admin → System Updates* PiFire scarica l'ultima versione dal ramo scelto di questo repository. Il grill usa `orangepi-stable`, che si aggiorna solo con una promozione manuale dopo i test.
 
 ## Rami e rilasci
@@ -143,6 +147,7 @@ Struttura delle parti nuove:
 | `auto-install/orangepi/` | Preparazione del sistema (`setup.sh`) e verifica (`opi_check.py`) |
 | `controller/flameout.py` | Rilevatore di fiamma spenta |
 | `notify/mqtt_control.py` | Comandi da Home Assistant e regole di sicurezza |
+| `wifi/`, `blueprints/wifi/` | Servizio Wi-Fi (rete di emergenza) e pagina Wi-Fi |
 | `dashboard/modern.json`, `blueprints/dash/*/modern/` | Dashboard Moderna |
 | `static/css/ember.css`, `static/font/barlow/` | Tema Ember e font |
 | `tools/grill_sim/` | Simulatore del grill |

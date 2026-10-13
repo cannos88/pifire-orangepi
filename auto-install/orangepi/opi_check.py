@@ -154,6 +154,20 @@ def report():
 	if console_on or getty == 'active':
 		print('-> I pin 8 e 10 (tasti/encoder della PCB v4) non sono utilizzabili finché la console è attiva.')
 
+	section('Rete')
+	nm_state = run(['systemctl', 'is-active', 'NetworkManager'])
+	print(f'NetworkManager: {nm_state or "non installato"}')
+	for yaml_file in sorted(glob.glob('/etc/netplan/*.yaml')):
+		renderers = [l.split(':', 1)[1].strip() for l in (read(yaml_file, '') or '').splitlines() if l.strip().startswith('renderer:')]
+		print(f'Netplan {yaml_file}: renderer {", ".join(renderers) or "predefinito (networkd)"}')
+	devices = run(['nmcli', '-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION', 'device']) if nm_state == 'active' else None
+	for line in (devices or '').splitlines():
+		if ':wifi:' in line:
+			print(f'Wi-Fi: {line}')
+	print(f'Servizio rete di emergenza (pifire-wifi): {run(["systemctl", "is-active", "pifire-wifi"]) or "?"}')
+	if nm_state != 'active':
+		print('-> Senza NetworkManager la rete di emergenza non funziona: rilancia setup.sh, passo 6.')
+
 	section('Temperatura CPU')
 	for zone in sorted(glob.glob('/sys/class/thermal/thermal_zone*')):
 		temp = read(os.path.join(zone, 'temp'))

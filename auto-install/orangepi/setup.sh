@@ -11,7 +11,8 @@
 #   3. serial console off, so header pins 8 and 10 can be used by the buttons/encoder
 #   4. I2C1 (pins 3/5) and SPI1 overlays in the boot configuration
 #   5. read-only deploy key for the private repository (root, used by installer and updater)
-#   6. PiFire installer, cloning this repository
+#   6. emergency Wi-Fi network: NetworkManager, open network "PiFire-Setup" when no known Wi-Fi
+#   7. PiFire installer, cloning this repository
 #
 # Options (environment variables):
 #   PIFIRE_REPO    repository to install   (default: git@github.com:cannos88/pifire-orangepi.git)
@@ -168,7 +169,53 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-say "6. Installazione di PiFire"
+say "6. Rete Wi-Fi di emergenza"
+info "Se il grill resta senza Wi-Fi per 3 minuti accende una rete aperta, «PiFire-Setup» (senza password)."
+info "Col telefono ti colleghi a quella rete, si apre la pagina Wi-Fi del grill e scegli la rete nuova."
+info "Da quella rete si vede solo la pagina Wi-Fi: il grill non si comanda."
+if ask "Configuro la rete di emergenza?"; then
+	apt-get install -y network-manager dnsmasq-base avahi-daemon libnss-mdns \
+		|| warn "Installazione di NetworkManager non riuscita: controlla i messaggi qui sopra."
+
+	# Armbian Minimal: netplan + systemd-networkd.  Hand the interfaces to NetworkManager
+	# (the CLI images already do this).  The saved Wi-Fi stays, it only changes manager.
+	NETPLAN_TODO=""
+	for f in /etc/netplan/*.yaml; do
+		[[ -f "$f" ]] || continue
+		grep -qE '^[[:space:]]*renderer:[[:space:]]*NetworkManager' "$f" || NETPLAN_TODO="$NETPLAN_TODO $f"
+	done
+	if [[ -n "$NETPLAN_TODO" ]]; then
+		info "Rete gestita da systemd-networkd in:$NETPLAN_TODO"
+		warn "Passo la gestione a NetworkManager. La rete configurata resta e riparte dopo il riavvio;"
+		warn "se il Wi-Fi non tornasse, dopo 3 minuti compare comunque la rete PiFire-Setup."
+		if ask "Procedo (backup accanto a ogni file)?"; then
+			for f in $NETPLAN_TODO; do
+				cp "$f" "$f.pifire.bak"
+				if grep -qE '^[[:space:]]*renderer:' "$f"; then
+					sed -i -E 's/^([[:space:]]*)renderer:.*/\1renderer: NetworkManager/' "$f"
+				else
+					sed -i -E 's/^network:[[:space:]]*$/network:\n  renderer: NetworkManager/' "$f"
+				fi
+				chmod 600 "$f"
+			done
+			netplan generate && info "netplan aggiornato." || warn "netplan generate ha dato errore: controlla i file in /etc/netplan."
+			systemctl enable NetworkManager >/dev/null 2>&1
+			REBOOT_NEEDED=1
+		fi
+	else
+		info "NetworkManager gestisce già la rete."
+	fi
+
+	mkdir -p /etc/NetworkManager/dnsmasq-shared.d
+	cp "$REPO_DIR/auto-install/orangepi/pifire-captive.conf" /etc/NetworkManager/dnsmasq-shared.d/pifire-captive.conf
+	cp "$REPO_DIR/auto-install/orangepi/pifire-wifi.service" /etc/systemd/system/pifire-wifi.service
+	systemctl daemon-reload
+	systemctl enable pifire-wifi.service >/dev/null 2>&1 && info "Servizio pifire-wifi abilitato (parte quando PiFire è installato)."
+	info "Pagina Wi-Fi: http://$(hostname).local/wifi  ·  rete di emergenza: http://10.42.0.1"
+fi
+
+# ---------------------------------------------------------------------------
+say "7. Installazione di PiFire"
 info "Repository: $PIFIRE_REPO  (ramo $PIFIRE_BRANCH)"
 if [[ -d /usr/local/bin/pifire ]]; then
 	warn "/usr/local/bin/pifire esiste già: l'installer non sovrascrive un'installazione esistente."

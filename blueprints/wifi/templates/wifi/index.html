@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#0C0E0F">
+	<title>Wi-Fi del grill | PiFire</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-barlow.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/ember.css') }}">
+	<link rel="stylesheet" href="{{ url_for('wifi_bp.static', filename='wifi/wifi.css') }}">
+</head>
+<body class="ember wf-body">
+<main class="wf" id="wf" data-emergency="{{ 'true' if emergency else 'false' }}" data-hostname="{{ hostname }}">
+
+	<header class="wf-head">
+		<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF6E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5.5C10 8.5 11 9.5 12 10c0-3 0-5.5 0-8z"/></svg>
+		<div>
+			<h1>Wi-Fi del grill</h1>
+			<span class="wf-muted">PiFire · {{ hostname }}</span>
+		</div>
+		{% if not emergency %}<a class="wf-back" href="/">Torna a PiFire</a>{% endif %}
+	</header>
+
+	<!-- Current state -->
+	<section class="wf-card" id="stateCard" aria-live="polite">
+		<span class="wf-label">Stato</span>
+		<div class="wf-state">
+			<span class="wf-dot" id="stateDot"></span>
+			<strong id="stateTitle">Lettura dello stato…</strong>
+		</div>
+		<p class="wf-muted" id="stateText"></p>
+	</section>
+
+	<!-- Result of the last request -->
+	<div class="wf-banner" id="banner" hidden></div>
+
+	<!-- Choose a network -->
+	<section class="wf-card" id="chooseCard" hidden>
+		<div class="wf-row wf-between">
+			<span class="wf-label" id="chooseTitle">Scegli la rete</span>
+			<button type="button" class="wf-link" id="rescan">Aggiorna elenco</button>
+		</div>
+		<div class="wf-list" id="networks" role="radiogroup" aria-label="Reti Wi-Fi visibili"></div>
+		<button type="button" class="wf-net wf-net-other" id="otherNet" role="radio" aria-checked="false">
+			<span>Altra rete (nome a mano)</span>
+		</button>
+
+		<form class="wf-form" id="form" hidden autocomplete="off">
+			<label class="wf-field" id="ssidField" hidden>
+				<span>Nome della rete</span>
+				<input type="text" id="ssid" maxlength="32" autocapitalize="off" spellcheck="false">
+			</label>
+			<label class="wf-field" id="passwordField">
+				<span>Password</span>
+				<span class="wf-pass">
+					<input type="password" id="password" maxlength="63" autocapitalize="off" spellcheck="false" autocomplete="new-password">
+					<button type="button" class="wf-link" id="showPassword" aria-label="Mostra la password">Mostra</button>
+				</span>
+				<span class="wf-muted wf-small" id="openHint" hidden>Rete aperta: lascia vuoto.</span>
+			</label>
+			<div class="wf-actions">
+				<button type="submit" class="wf-btn wf-btn-primary" id="connectBtn">Collega</button>
+				<button type="button" class="wf-btn" id="saveBtn" hidden>Salva per dopo</button>
+			</div>
+			<p class="wf-muted wf-small" id="formHint"></p>
+		</form>
+	</section>
+
+	<!-- Saved networks (only on the home network) -->
+	<section class="wf-card" id="savedCard" hidden>
+		<span class="wf-label">Reti salvate</span>
+		<p class="wf-muted wf-small">Il grill si collega da solo alla prima disponibile. Se devi cambiare la password del router, aggiungi qui la rete con la nuova password prima di cambiarla.</p>
+		<div class="wf-list" id="saved"></div>
+	</section>
+
+	<p class="wf-foot wf-muted wf-small" id="foot"></p>
+</main>
+
+<script src="{{ url_for('wifi_bp.static', filename='wifi/wifi.js') }}"></script>
+</body>
+</html>

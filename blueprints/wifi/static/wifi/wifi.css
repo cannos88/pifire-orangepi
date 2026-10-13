@@ -1,0 +1,58 @@
+/* Wi-Fi setup page (Ember tokens from static/css/ember.css) */
+.wf, .wf *, .wf *::before, .wf *::after { box-sizing: border-box; }
+body.wf-body { padding-top: 0; min-height: 100vh; }
+.wf { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+.wf [hidden] { display: none !important; }
+.wf-head { display: flex; align-items: center; gap: 12px; padding: 4px 0 8px; }
+.wf-head h1 { font-family: var(--em-font-cond); font-size: 26px; font-weight: 600; margin: 0; line-height: 1.1; }
+.wf-back { margin-left: auto; font-size: 14px; }
+.wf-muted { color: var(--em-muted); }
+.wf-small { font-size: 13px; }
+.wf-label { font-size: 13px; letter-spacing: 0.08em; color: var(--em-muted); text-transform: uppercase; font-weight: 500; }
+.wf-card { background: var(--em-card); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.wf-card p { margin: 0; }
+.wf-row { display: flex; align-items: center; gap: 10px; }
+.wf-between { justify-content: space-between; }
+.wf-state { display: flex; align-items: center; gap: 10px; font-size: 20px; }
+.wf-state strong { font-weight: 600; }
+.wf-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--em-muted); flex: none; }
+.wf-dot.is-ok { background: var(--em-ok); }
+.wf-dot.is-ap { background: var(--em-ember); }
+.wf-dot.is-wait { background: var(--em-warn); }
+.wf-banner { border-radius: 14px; padding: 14px 18px; background: var(--em-raised); border: 1px solid var(--em-line); }
+.wf-banner.is-ok { background: rgba(88, 200, 120, 0.1); border-color: rgba(88, 200, 120, 0.4); }
+.wf-banner.is-error { background: rgba(255, 84, 84, 0.1); border-color: rgba(255, 84, 84, 0.4); }
+.wf-list { display: flex; flex-direction: column; gap: 6px; }
+.wf-net {
+	display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 14px;
+	border-radius: 12px; border: 1px solid var(--em-line); background: transparent; color: var(--em-text);
+	font-family: var(--em-font); font-size: 16px; text-align: left; cursor: pointer;
+}
+.wf-net[aria-checked="true"] { border-color: var(--em-ember); background: rgba(255, 110, 30, 0.08); }
+.wf-net .wf-net-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-net-other { color: var(--em-muted); }
+.wf-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+.wf-bars i { width: 4px; background: #3A3F43; border-radius: 1px; }
+.wf-bars i.on { background: var(--em-text); }
+.wf-lock { color: var(--em-muted); }
+.wf-form { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--em-line); padding-top: 16px; }
+.wf-field { display: flex; flex-direction: column; gap: 6px; margin: 0; font-size: 14px; color: var(--em-muted); }
+.wf-field input {
+	width: 100%; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--em-line);
+	background: var(--em-bg); color: var(--em-text); font-family: var(--em-font); font-size: 17px;
+}
+.wf-field input:focus { outline: none; border-color: var(--em-ember); }
+.wf-pass { position: relative; display: block; }
+.wf-pass input { padding-right: 80px; }
+.wf-pass .wf-link { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.wf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.wf-btn {
+	flex: 1 1 140px; min-height: 50px; border-radius: 12px; border: 1px solid var(--em-line); background: none;
+	color: var(--em-text); font-family: var(--em-font); font-weight: 600; font-size: 16px; cursor: pointer;
+}
+.wf-btn:disabled { opacity: 0.5; cursor: default; }
+.wf-btn-primary { background: var(--em-ember); border-color: var(--em-ember); color: #1A0E06; }
+.wf-link { background: none; border: 0; color: var(--em-ember-2); font-family: var(--em-font); font-size: 14px; font-weight: 600; cursor: pointer; padding: 6px 4px; }
+.wf-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 4px 0 14px; border-radius: 12px; border: 1px solid var(--em-line); }
+.wf-saved .wf-net-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-foot { text-align: center; }

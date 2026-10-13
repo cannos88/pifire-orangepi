@@ -44,12 +44,13 @@ BACKUP_PATH = './backups/'  # Path to backups of settings.json, pelletdb.json
 
 # Set of default colors for charts.  Contains list of tuples (primary color, secondary color). 
 COLOR_LIST = [
-	('rgb(0, 64, 255, 1)', 'rgb(0, 128, 255, 1)'),  # Blue
-	('rgb(0, 200, 64, 1)', 'rgb(0, 232, 126, 1)'),  # Green
-	('rgb(132, 0, 0, 1)', 'rgb(200, 0, 0, 1)'),  # Red 
-	('rgb(126, 0, 126, 1)', 'rgb(126, 64, 125, 1)'),  # Purple
-	('rgb(255, 210, 0, 1)', 'rgb(255, 255, 0, 1)'),  # Yellow
-	('rgb(255, 126, 0, 1)', 'rgb(255, 126, 64, 1)')	# Orange
+	# Orange Pi fork: Ember palette, same colours as the Modern dashboard (line, target line)
+	('rgb(255, 110, 30, 1)', 'rgb(168, 90, 42, 1)'),  # Ember (grill)
+	('rgb(120, 190, 255, 1)', 'rgb(70, 130, 200, 1)'),  # Blue
+	('rgb(200, 160, 255, 1)', 'rgb(140, 100, 200, 1)'),  # Purple
+	('rgb(127, 214, 194, 1)', 'rgb(80, 160, 140, 1)'),  # Teal
+	('rgb(242, 196, 109, 1)', 'rgb(190, 145, 60, 1)'),  # Amber
+	('rgb(255, 157, 181, 1)', 'rgb(200, 100, 130, 1)')  # Pink
 ]
 
 # Setup Command / Status database connection Global 
@@ -114,7 +115,7 @@ def default_settings():
 	settings['globals'] = {
 		'grill_name' : '',
 		'debug_mode' : False,
-		'page_theme' : 'light',
+		'page_theme' : 'dark',  # Orange Pi fork: Ember theme by default
 		'disp_rotation' : 0,
 		'units' : 'F',
 		'augerrate' : 0.3,  		# (grams per second) default auger load rate is 10 grams / 30 seconds
@@ -339,7 +340,7 @@ def _default_dashboard():
 	Generate default dashboard settings by getting metadata from each json file in the /dashboard folder
 	'''
 	dash_data = {
-		'current' : 'Default', 
+		'current' : 'Modern' if os.path.exists('./dashboard/modern.json') else 'Default',  # Orange Pi fork default
 		'dashboards' : {}
 	}
 	# Define the folder path
@@ -923,6 +924,26 @@ def write_control(control, direct_write=False, origin='unknown'):
 		# Add changes to control write queue 
 		control['origin'] = origin 
 		cmdsts.rpush('control:write', json.dumps(control))
+
+def read_control_pending():
+	"""
+	Control as it will be once the queued writes (control:write) are applied.
+
+	Commands queue a full copy of the control data and control.py applies the
+	queue on its next cycle.  Two commands sent within one cycle (probe target
+	then notify request, timer start then timer options) would otherwise both
+	start from the same stale copy, and the second would undo the first.
+	Orange Pi fork.
+	"""
+	control = read_control()
+	try:
+		for item in cmdsts.lrange('control:write', 0, -1):
+			command = json.loads(item)
+			command.pop('origin', None)
+			control = deep_update(control, command)
+	except Exception:
+		pass
+	return control
 
 def execute_control_writes():
 	"""
@@ -2452,7 +2473,7 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 	data['message'] = 'Command was accepted successfully.'
 	data['data'] = {}
 
-	control = read_control()
+	control = read_control_pending()  # includes commands still waiting in the write queue
 	settings = read_settings() 
 	
 	''' Populate any empty args with None just in case '''
@@ -2848,6 +2869,9 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 					data['message'] = f'Notify object label {arglist[1]} was not found.'
 				else:
 					#print(f'{object["label"]} FOUND')
+					if arglist[2] in ['req', 'target']:
+						# A new or cancelled request replaces the "target reached" marker (Orange Pi fork)
+						control['notify_data'][index].pop('achieved', None)
 					if arglist[2] in ['req', 'shutdown', 'keep_warm', 'reignite']:
 						if arglist[3] == 'true':
 							control['notify_data'][index][arglist[2]] = True
@@ -2858,7 +2882,8 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 							if settings['globals']['units'] == 'F':
 								control['notify_data'][index]['target'] = int(float(arglist[3]))
 							else:
-								control['primary_setpoint'] = float(arglist[3])
+								# Upstream wrote this to the grill set point (primary_setpoint) in °C
+								control['notify_data'][index]['target'] = float(arglist[3])
 						else:
 							data['result'] = 'ERROR'
 							data['message'] = f'Notify object target value invalid or missing.'

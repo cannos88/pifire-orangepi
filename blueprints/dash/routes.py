@@ -1,7 +1,12 @@
 
 from flask import render_template, request, redirect, render_template_string
+import time
+
+from flask import jsonify
 from common.common import read_settings, read_control, process_command, read_errors, read_warnings, read_probe_status, write_settings, read_generic_json
+from common.common import read_history, read_metrics, read_pellet_db, read_control_pending
 from common.app import get_system_command_output
+from .modern_data import HISTORY_POINTS_PER_MINUTE, downsample_history, cook_pellet_estimate, timer_state
 
 from . import dash_bp
 
@@ -60,3 +65,44 @@ def dash_config():
 		return redirect('/dash')
 	
 	return 'Bad Request'
+
+@dash_bp.route('/modern/data', methods=['GET'])
+def dash_modern_data():
+	'''
+	Chart, timer and pellet data for the Modern dashboard.
+	/dash/modern/data?minutes=90  (5 to 720 minutes of history)
+	'''
+	settings = read_settings()
+	control = read_control_pending()  # timer commands sent a moment ago are already visible
+	try:
+		minutes = int(request.args.get('minutes', 90))
+	except ValueError:
+		minutes = 90
+	minutes = max(5, min(720, minutes))
+
+	history = read_history(num_items=minutes * HISTORY_POINTS_PER_MINUTE)
+	chart = downsample_history(history, max_points=300)
+
+	try:
+		metrics_list = read_metrics(all=True)
+	except Exception:
+		metrics_list = []
+	startup_timestamp = control.get('startup_timestamp', 0) if control.get('mode') not in ('Stop', 'Error', 'Monitor') else 0
+	pellets_g = cook_pellet_estimate(metrics_list, startup_timestamp, settings['globals'].get('augerrate', 0.3))
+
+	hopper = None
+	if settings['modules'].get('dist', 'none') != 'none':
+		try:
+			hopper = read_pellet_db()['current']['hopper_level']
+		except Exception:
+			hopper = None
+
+	return jsonify({
+		'minutes': minutes,
+		'chart': chart,
+		'timer': timer_state(control.get('timer'), control.get('notify_data'), time.time()),
+		'pellets_g': pellets_g,
+		'hopper_level': hopper,
+		'mqtt': bool(settings.get('notify_services', {}).get('mqtt', {}).get('enabled', False)),
+		'server_time': time.time(),
+	})

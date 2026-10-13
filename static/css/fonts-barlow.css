@@ -1,0 +1,10 @@
+/* Barlow and Barlow Condensed (SIL Open Font License, see static/font/barlow/OFL.txt).
+   Served locally: the grill often has no internet access. */
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; font-display: swap;
+	src: url('../font/barlow/Barlow-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; font-display: swap;
+	src: url('../font/barlow/Barlow-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-style: normal; font-display: swap;
+	src: url('../font/barlow/BarlowCondensed-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; font-display: swap;
+	src: url('../font/barlow/BarlowCondensed-SemiBold.woff2') format('woff2'); }

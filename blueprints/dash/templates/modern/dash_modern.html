@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{#
+  "Modern" dashboard (Ember theme): dark, large figures, touch-sized controls.
+  Live values come from /api/current, chart/timer/pellets from /dash/modern/data,
+  commands go to /api/set/... (see static/modern/js/dash_modern.js).
+#}
+{% set page_theme = 'dark' %}
+
+{% set probe_colors = ['#78BEFF', '#C8A0FF', '#7FD6C2', '#F2C46D', '#FF9DB5', '#B5E07A'] %}
+{% set ns = namespace(probes=[], primary=None, food_index=0) %}
+{% for probe in settings['probe_settings']['probe_map']['probe_info'] %}
+	{% if probe['type'] == 'Primary' and ns.primary is none %}
+		{% set ns.primary = probe['label'] %}
+		{% set ns.probes = ns.probes + [{'label': probe['label'], 'name': probe['name'], 'group': 'P', 'color': '#FF6E1E', 'enabled': probe['enabled']}] %}
+	{% elif probe['type'] == 'Food' and probe['enabled'] %}
+		{% set ns.probes = ns.probes + [{'label': probe['label'], 'name': probe['name'], 'group': 'F', 'color': probe_colors[ns.food_index % 6], 'enabled': probe['enabled'], 'hidden': probe['label'] in dash_data['custom']['hidden_cards']}] %}
+		{% set ns.food_index = ns.food_index + 1 %}
+	{% endif %}
+{% endfor %}
+
+{# page_theme = 'dark' above makes base.html load the Barlow fonts and ember.css #}
+{% block cssextend %}
+<link rel="stylesheet" href="{{ url_for('dash_bp.static', filename='modern/css/dash_modern.css') }}" type="text/css" />
+{% endblock %}
+
+{% block title %}Dashboard{% endblock %}
+{% block body_class %}md-body{% endblock %}
+
+{# The timer lives in its own card on this dashboard #}
+{% block timer_toggler %}{% endblock %}
+{% block timer_bar %}{% endblock %}
+{% block timer_scripts %}{% endblock %}
+{% block controlpanel %}{% endblock %}
+{% block controlpanel_scripts %}{% endblock %}
+
+{% block content %}
+<div class="md" id="md">
+
+	<!-- Connection / alerts strip -->
+	<div class="md-strip" aria-live="polite">
+		<span class="md-chip" id="chipOnline"><span class="md-dot"></span><span class="md-chip-text">Connessione…</span></span>
+		<span class="md-chip" id="chipMqtt" hidden><span class="md-dot md-dot-ok"></span>Home Assistant</span>
+		<span class="md-chip md-chip-warn" id="chipLid" hidden>
+			<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 14h16M6 14V9a6 6 0 0 1 12 0v5M12 3v2"/></svg>
+			<span>Coperchio aperto</span> <strong id="lidRemaining"></strong>
+		</span>
+		<button type="button" class="md-icon-btn ml-auto" id="dashGear" aria-label="Impostazioni dashboard">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+		</button>
+	</div>
+	<div class="md-banner md-banner-error" id="bannerError" hidden>
+		<strong>Errore critico.</strong> Il controllo ha segnalato un problema: controlla il <a href="/events">registro eventi</a>.
+	</div>
+	<div class="md-banner" id="bannerOffline" hidden>
+		Il grill non risponde da qualche secondo. Riprovo in automatico…
+	</div>
+
+	<!-- Grill + controls -->
+	<section class="md-grid md-grid-hero" aria-label="Grill">
+		<div class="md-card md-grill">
+			<div class="md-row md-row-between">
+				<span class="md-mode"><span class="md-dot" id="modeDot"></span><span id="modeLabel">—</span></span>
+				<span class="md-elapsed" id="elapsedWrap" hidden>
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+					<span id="elapsedLabel">In cottura da</span> <strong id="elapsed">—</strong>
+				</span>
+			</div>
+			<div class="md-bigtemp">
+				<span class="md-label md-w100">Temperatura grill</span>
+				<span class="md-num md-num-xl" id="grillTemp">—</span>
+				<span class="md-unit">°{{ settings['globals']['units'] }}</span>
+			</div>
+			<div class="md-bar"><div class="md-bar-fill" id="grillBar" style="width:0%"></div></div>
+			<div class="md-row md-pills">
+				<span class="md-pill" id="pillTarget" hidden>Target <strong class="md-num" id="pillTargetVal">—</strong></span>
+				<span class="md-pill" id="pillPhase" hidden><span id="pillPhaseText"></span> <strong class="md-num" id="pillPhaseVal"></strong></span>
+				<span class="md-pill md-pill-outline" id="pillSplus" hidden>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4.5 12 3.5 3.5 0 0 0 6 19z"/></svg>Smoke+ attivo
+				</span>
+			</div>
+		</div>
+
+		<div class="md-card md-control">
+			<span class="md-label">Controllo</span>
+
+			<!-- Smoke / Hold -->
+			<div class="md-panel" data-panel="run" hidden>
+				<div class="md-seg" role="group" aria-label="Modalità">
+					<button type="button" data-mode="smoke" aria-pressed="false">Affumicatura</button>
+					<button type="button" data-mode="hold" aria-pressed="false">Mantenimento</button>
+					<button type="button" data-mode="shutdown" aria-pressed="false">Spegnimento</button>
+				</div>
+				<div class="md-stepper">
+					<button type="button" class="md-step" id="stepDown" aria-label="Diminuisci temperatura">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+					</button>
+					<div class="md-step-value">
+						<div class="md-num md-num-target" id="targetValue">—</div>
+						<div class="md-muted md-small" id="targetHint">temperatura target</div>
+					</div>
+					<button type="button" class="md-step" id="stepUp" aria-label="Aumenta temperatura">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+					</button>
+				</div>
+				<div class="md-presets" id="presets"></div>
+				<div class="md-row md-row-between md-footer">
+					<button type="button" class="md-switch" id="splusSwitch" aria-pressed="false">
+						<span class="md-switch-track"><span class="md-switch-knob"></span></span>Smoke+
+					</button>
+					<button type="button" class="md-btn md-btn-danger-outline" data-action="shutdown">Avvia spegnimento</button>
+				</div>
+			</div>
+
+			<!-- Startup / Reignite / Shutdown / Prime: a phase with a countdown -->
+			<div class="md-panel" data-panel="phase" hidden>
+				<div class="md-phase">
+					<div class="md-phase-title" id="phaseTitle">Accensione in corso</div>
+					<div class="md-num md-num-target" id="phaseCountdown">—</div>
+					<div class="md-bar"><div class="md-bar-fill" id="phaseBar" style="width:0%"></div></div>
+					<div class="md-muted" id="phaseNote"></div>
+				</div>
+				<div class="md-row md-row-end md-footer">
+					<button type="button" class="md-btn md-btn-danger-outline" data-action="shutdown" id="phaseShutdown">Spegnimento</button>
+					<button type="button" class="md-btn md-btn-ghost" data-action="stop" id="phaseStop" hidden>Stop</button>
+				</div>
+			</div>
+
+			<!-- Stop / Monitor / Error -->
+			<div class="md-panel" data-panel="idle" hidden>
+				<p class="md-muted md-idle-text" id="idleText">Il grill è spento.</p>
+				<button type="button" class="md-btn md-btn-primary md-btn-lg" data-action="startup">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5.5C10 8.5 11 9.5 12 10c0-3 0-5.5 0-8z"/></svg>
+					Accendi il grill
+				</button>
+				<div class="md-row md-row-between md-footer">
+					<span class="md-muted md-small" id="idleAfter"></span>
+					<button type="button" class="md-btn md-btn-ghost" data-action="monitor" id="idleMonitor">Solo monitoraggio</button>
+					<button type="button" class="md-btn md-btn-ghost" data-action="stop" id="idleStop" hidden>Ferma monitoraggio</button>
+				</div>
+			</div>
+
+			<!-- Manual / Recipe and anything else this dashboard does not drive -->
+			<div class="md-panel" data-panel="other" hidden>
+				<p class="md-muted md-idle-text" id="otherText"></p>
+				<div class="md-row md-row-end md-footer">
+					<button type="button" class="md-btn md-btn-danger-outline" data-action="shutdown">Avvia spegnimento</button>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Chart -->
+	<section class="md-card md-chart-card" aria-label="Andamento temperature">
+		<div class="md-row md-row-between md-wrap">
+			<div class="md-row md-gap-s">
+				<span class="md-label" id="chartTitle">Ultimi 90 minuti</span>
+				<div class="md-range" role="group" aria-label="Intervallo grafico">
+					<button type="button" data-minutes="30">30′</button>
+					<button type="button" data-minutes="90">90′</button>
+					<button type="button" data-minutes="180">3 h</button>
+				</div>
+			</div>
+			<div class="md-legend" id="chartLegend"></div>
+		</div>
+		<div class="md-chart" id="chart">
+			<div class="md-chart-y" id="chartY"></div>
+			<div class="md-chart-plot" id="chartPlot">
+				<svg id="chartSvg" role="img" aria-label="Grafico delle temperature"></svg>
+				<span class="md-chart-dot" id="chartDot" hidden></span>
+				<div class="md-chart-empty" id="chartEmpty" hidden>Nessun dato ancora: il grafico si riempie durante la cottura.</div>
+			</div>
+			<div></div>
+			<div class="md-chart-x" id="chartX"></div>
+		</div>
+	</section>
+
+	<!-- Probes and timer -->
+	<section class="md-grid md-grid-cards" aria-label="Sonde e timer" id="probeGrid">
+		{% for probe in ns.probes if probe['group'] == 'F' %}
+		<button type="button" class="md-card md-probe" data-probe="{{ probe['label'] }}" {% if probe['hidden'] %}hidden{% endif %}
+				aria-label="Sonda {{ probe['name'] }}: imposta il target">
+			<span class="md-row md-row-between">
+				<span class="md-label md-row md-gap-s"><span class="md-dot" style="background: {{ probe['color'] }}"></span>{{ probe['name'] }}</span>
+				<span class="md-probe-status md-small">—</span>
+			</span>
+			<span class="md-row md-row-between md-baseline">
+				<span class="md-num md-num-l md-probe-temp">—</span>
+				<span class="md-num md-probe-target"></span>
+			</span>
+			<span class="md-bar"><span class="md-bar-fill md-probe-bar" style="width:0%"></span></span>
+		</button>
+		{% endfor %}
+
+		<div class="md-card md-timer" id="timerCard">
+			<div class="md-row md-row-between">
+				<span class="md-label md-row md-gap-s">
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Timer
+				</span>
+				<span class="md-row md-gap-s">
+					<button type="button" class="md-link" id="timerPause" hidden>Pausa</button>
+					<button type="button" class="md-link" id="timerResume" hidden>Riprendi</button>
+					<button type="button" class="md-link md-link-muted" id="timerStop" hidden>Annulla</button>
+				</span>
+			</div>
+			<span class="md-num md-num-l" id="timerValue">—</span>
+			<span class="md-muted md-small" id="timerNote">&nbsp;</span>
+			<div class="md-timer-quick" id="timerQuick">
+				<button type="button" data-seconds="900">15′</button>
+				<button type="button" data-seconds="1800">30′</button>
+				<button type="button" data-seconds="3600">1 h</button>
+				<button type="button" id="timerCustom">Altro…</button>
+			</div>
+		</div>
+	</section>
+
+	<!-- Outputs -->
+	<section class="md-grid md-grid-status" aria-label="Stato del grill">
+		<div class="md-stat"><span class="md-muted">Ventola</span><span class="md-stat-val" id="statFan">—</span></div>
+		<div class="md-stat"><span class="md-muted">Coclea</span><span class="md-stat-val" id="statAuger">—</span></div>
+		<div class="md-stat"><span class="md-muted">Candeletta</span><span class="md-stat-val" id="statIgniter">—</span></div>
+		<div class="md-stat"><span class="md-muted" id="statPelletLabel">Pellet usato (stima)</span><span class="md-stat-val md-num" id="statPellet">—</span></div>
+	</section>
+
+	<div class="md-links">
+		<a href="/history">Storico completo</a>
+		<a href="/events">Eventi</a>
+		<a href="/settings">Impostazioni</a>
+	</div>
+</div>
+
+<!-- Dialogs -->
+<dialog class="md-dialog" id="confirmDialog">
+	<form method="dialog">
+		<h2 class="md-dialog-title" id="confirmTitle"></h2>
+		<p class="md-muted" id="confirmText"></p>
+		<div class="md-row md-row-end md-gap-s">
+			<button type="submit" value="cancel" class="md-btn md-btn-ghost">Annulla</button>
+			<button type="submit" value="ok" class="md-btn md-btn-primary" id="confirmOk">Conferma</button>
+		</div>
+	</form>
+</dialog>
+
+<dialog class="md-dialog" id="probeDialog">
+	<form method="dialog">
+		<h2 class="md-dialog-title">Target <span id="probeDialogName"></span></h2>
+		<p class="md-muted md-small">Ricevi un avviso quando la sonda arriva a questa temperatura.</p>
+		<div class="md-stepper md-stepper-s">
+			<button type="button" class="md-step" id="probeDown" aria-label="Diminuisci target">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+			</button>
+			<label class="md-step-value">
+				<input type="number" inputmode="numeric" class="md-num md-input-target" id="probeTarget" aria-label="Target sonda">
+				<span class="md-muted md-small">°{{ settings['globals']['units'] }}</span>
+			</label>
+			<button type="button" class="md-step" id="probeUp" aria-label="Aumenta target">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+			</button>
+		</div>
+		<div class="md-presets md-presets-s" id="foodPresets"></div>
+		<div class="md-row md-row-between md-gap-s">
+			<button type="submit" value="clear" class="md-btn md-btn-ghost" id="probeClear">Rimuovi target</button>
+			<span class="md-row md-gap-s">
+				<button type="submit" value="cancel" class="md-btn md-btn-ghost">Annulla</button>
+				<button type="submit" value="ok" class="md-btn md-btn-primary">Salva</button>
+			</span>
+		</div>
+	</form>
+</dialog>
+
+<dialog class="md-dialog" id="timerDialog">
+	<form method="dialog">
+		<h2 class="md-dialog-title">Nuovo timer</h2>
+		<div class="md-row md-gap-s md-timer-inputs">
+			<label class="md-field"><input type="number" min="0" max="23" value="0" id="timerHours" inputmode="numeric"><span>ore</span></label>
+			<label class="md-field"><input type="number" min="0" max="59" value="45" id="timerMinutes" inputmode="numeric"><span>minuti</span></label>
+		</div>
+		<label class="md-check"><input type="checkbox" id="timerShutdown"> Spegni il grill alla fine</label>
+		<label class="md-check"><input type="checkbox" id="timerKeepWarm"> Poi tieni in caldo</label>
+		<div class="md-row md-row-end md-gap-s">
+			<button type="submit" value="cancel" class="md-btn md-btn-ghost">Annulla</button>
+			<button type="submit" value="ok" class="md-btn md-btn-primary">Avvia</button>
+		</div>
+	</form>
+</dialog>
+
+<dialog class="md-dialog md-dialog-wide" id="dashSettingsDialog">
+	<form method="dialog" class="md-row md-row-between">
+		<h2 class="md-dialog-title">Impostazioni dashboard</h2>
+		<button type="submit" class="md-icon-btn" aria-label="Chiudi">&times;</button>
+	</form>
+	<div id="dash_config_card" class="md-dash-config">Caricamento…</div>
+</dialog>
+
+<div class="md-toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="application/json" id="mdConfig">{{ {
+	'units': settings['globals']['units'],
+	'grill_name': grill_name,
+	'primary': ns.primary,
+	'probes': ns.probes,
+	'chart_minutes': dash_data.get('config', {}).get('chart_minutes', '90'),
+	'presets': dash_data.get('config', {}).get('presets', ''),
+	'after_startup_mode': settings['startup']['start_to_mode']['after_startup_mode'],
+	'after_startup_setpoint': settings['startup']['start_to_mode']['primary_setpoint'],
+	'smoke_plus_default': settings['smoke_plus']['enabled'] if 'smoke_plus' in settings else False,
+	'mqtt': settings['notify_services']['mqtt']['enabled'] if 'mqtt' in settings['notify_services'] else False,
+	'hopper': settings['modules']['dist'] != 'none',
+	'mode': control['mode']
+} | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('dash_bp.static', filename='modern/js/dash_modern.js') }}"></script>
+{% endblock %}

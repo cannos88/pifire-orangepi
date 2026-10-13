@@ -1,0 +1,289 @@
+/*
+ * Ember theme for PiFire (Orange Pi fork).
+ *
+ * Loaded by base.html on top of dark.bootstrap.min.css when the dark theme is
+ * selected (Settings > Theme), and always by the Modern dashboard.  Every rule
+ * is scoped to body.ember so the light theme is untouched.
+ */
+:root {
+	--em-bg: #0C0E0F;
+	--em-card: #181B1D;
+	--em-raised: #222629;
+	--em-line: #2C3033;
+	--em-text: #F4F1EC;
+	--em-muted: #9AA0A5;
+	--em-ember: #FF6E1E;
+	--em-ember-2: #FF8A47;
+	--em-ember-3: #FFB07F;
+	--em-ok: #58C878;
+	--em-warn: #FFC45C;
+	--em-danger: #FF5454;
+	--em-probe1: #78BEFF;
+	--em-setpoint: #A85A2A;
+	--em-font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--em-font-cond: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+}
+
+body.ember {
+	background: var(--em-bg);
+	color: var(--em-text);
+	font-family: var(--em-font);
+	font-size: 15px;
+	padding-top: 64px;
+	-webkit-tap-highlight-color: transparent;
+}
+.ember a { color: var(--em-ember-2); }
+.ember a:hover { color: var(--em-ember-3); }
+.ember h1, .ember h2, .ember h3, .ember h4, .ember h5, .ember .modal-title {
+	font-family: var(--em-font-cond);
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+.ember .container.theme-showcase { max-width: 1240px; }
+.ember ::selection { background: rgba(255, 110, 30, 0.35); }
+
+/* ---- Navbar: flat, like the mockup header ---- */
+.ember .navbar.bg-dark {
+	background: rgba(12, 14, 15, 0.94) !important;
+	border-bottom: 1px solid var(--em-line);
+	padding: 10px 16px;
+	-webkit-backdrop-filter: blur(8px);
+	backdrop-filter: blur(8px);
+}
+.ember .navbar-brand { display: inline-flex; align-items: center; gap: 10px; padding: 0; margin-right: 24px; }
+.ember .em-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.ember .em-brand-name { font-family: var(--em-font-cond); font-weight: 600; font-size: 22px; letter-spacing: 0.02em; color: var(--em-text); }
+.ember .em-brand-grill { font-size: 12px; color: var(--em-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.ember .navbar-dark .navbar-nav .nav-link {
+	color: var(--em-muted);
+	font-weight: 500;
+	padding: 10px 14px;
+	border-radius: 10px;
+	margin: 0 2px;
+}
+.ember .navbar-dark .navbar-nav .nav-link:hover { color: var(--em-text); }
+.ember .navbar-dark .navbar-nav .nav-link.active { color: var(--em-text); font-weight: 600; background: #1A1D1F; }
+.ember .navbar .btn-outline-secondary {
+	border-color: var(--em-line) !important;
+	color: var(--em-muted);
+	border-radius: 12px;
+	min-width: 44px;
+	min-height: 40px;
+}
+.ember .navbar .btn-outline-secondary:hover { background: var(--em-raised); color: var(--em-text); }
+@media (max-width: 992px) {
+	.ember .navbar-collapse { background: transparent; }
+	.ember .navbar-nav { padding: 8px 0 4px; }
+}
+
+/* ---- Cards ---- */
+.ember .card {
+	background: var(--em-card);
+	border: 0;
+	border-radius: 20px;
+	color: var(--em-text);
+	overflow: hidden;
+}
+.ember .card.shadow, .ember .shadow { box-shadow: none !important; }
+.ember .card-header, .ember .card-footer {
+	background: transparent;
+	border-color: var(--em-line);
+	color: var(--em-muted);
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	font-weight: 500;
+	padding: 16px 22px;
+}
+.ember .card-footer { text-transform: none; letter-spacing: 0; font-size: 14px; }
+.ember .card-body { padding: 20px 22px; }
+.ember .list-group-item { background: transparent; border-color: var(--em-line); color: var(--em-text); }
+.ember .list-group-item.active { background: var(--em-raised); border-color: var(--em-line); color: var(--em-text); }
+.ember .list-group-item-action:hover, .ember .list-group-item-action:focus { background: var(--em-raised); color: var(--em-text); }
+
+/* ---- Buttons ---- */
+.ember .btn { border-radius: 12px; font-weight: 600; font-family: var(--em-font); }
+.ember .btn:focus, .ember .btn.focus { box-shadow: 0 0 0 2px rgba(255, 138, 71, 0.45); }
+.ember .btn-primary, .ember .btn-danger, .ember .btn-warning {
+	background: var(--em-ember);
+	border-color: var(--em-ember);
+	color: #1A0E06;
+}
+.ember .btn-primary:hover, .ember .btn-danger:hover, .ember .btn-warning:hover,
+.ember .btn-primary:not(:disabled):not(.disabled):active, .ember .btn-danger:not(:disabled):not(.disabled):active {
+	background: var(--em-ember-2);
+	border-color: var(--em-ember-2);
+	color: #1A0E06;
+}
+.ember .btn-success { background: #2E7D4A; border-color: #2E7D4A; color: var(--em-text); }
+.ember .btn-secondary, .ember .btn-info, .ember .btn-dark, .ember .btn-light {
+	background: var(--em-raised);
+	border-color: var(--em-line);
+	color: var(--em-text);
+}
+.ember .btn-secondary:hover, .ember .btn-info:hover, .ember .btn-dark:hover, .ember .btn-light:hover { background: #2A2E31; color: var(--em-text); }
+.ember .btn-outline-primary, .ember .btn-outline-danger, .ember .btn-outline-warning {
+	color: var(--em-ember-3);
+	border-color: #5A3A2A;
+	background: transparent;
+}
+.ember .btn-outline-primary:hover, .ember .btn-outline-danger:hover, .ember .btn-outline-warning:hover,
+.ember .btn-outline-primary.active, .ember .btn-outline-danger.active {
+	background: rgba(255, 110, 30, 0.12);
+	color: var(--em-ember-3);
+	border-color: var(--em-ember);
+}
+.ember .btn-outline-secondary, .ember .btn-outline-info, .ember .btn-outline-success, .ember .btn-outline-dark, .ember .btn-outline-light {
+	color: var(--em-muted);
+	border-color: var(--em-line);
+}
+.ember .btn-outline-secondary:hover, .ember .btn-outline-info:hover, .ember .btn-outline-success:hover,
+.ember .btn-outline-secondary.active, .ember .btn-outline-success.active {
+	background: var(--em-raised);
+	color: var(--em-text);
+	border-color: var(--em-line);
+}
+.ember .btn-group > .btn { border-radius: 12px; }
+.ember .btn-group > .btn:not(:last-child):not(.dropdown-toggle) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.ember .btn-group > .btn:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+/* ---- Forms ---- */
+.ember .form-control, .ember .custom-select, .ember .input-group-text {
+	background: var(--em-bg);
+	border: 1px solid var(--em-line);
+	border-radius: 12px;
+	color: var(--em-text);
+	min-height: 42px;
+}
+.ember .form-control:focus, .ember .custom-select:focus {
+	background: var(--em-bg);
+	color: var(--em-text);
+	border-color: var(--em-ember);
+	box-shadow: 0 0 0 2px rgba(255, 110, 30, 0.25);
+}
+.ember .form-control:disabled, .ember .form-control[readonly] { background: #141618; color: var(--em-muted); }
+.ember .input-group > .form-control:not(:last-child), .ember .input-group > .custom-select:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.ember .input-group > .form-control:not(:first-child), .ember .input-group > .custom-select:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.ember .input-group-append .input-group-text, .ember .input-group-append .btn { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.ember .input-group-prepend .input-group-text, .ember .input-group-prepend .btn { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.ember .input-group-text { color: var(--em-muted); }
+.ember .custom-control-input:checked ~ .custom-control-label::before { background-color: var(--em-ember); border-color: var(--em-ember); }
+.ember .custom-control-input:focus ~ .custom-control-label::before { box-shadow: 0 0 0 2px rgba(255, 110, 30, 0.25); }
+.ember .custom-control-label::before { background-color: #3A3F43; border-color: #3A3F43; }
+.ember .custom-range::-webkit-slider-thumb { background: var(--em-ember); }
+.ember .custom-range::-moz-range-thumb { background: var(--em-ember); }
+.ember .custom-range::-webkit-slider-runnable-track { background: var(--em-line); }
+.ember .form-text, .ember .text-muted, .ember small.text-muted { color: var(--em-muted) !important; }
+.ember input[type="checkbox"], .ember input[type="radio"] { accent-color: var(--em-ember); }
+
+/* ---- Navigation pills / tabs (settings, admin) ---- */
+.ember .nav-pills .nav-link { color: var(--em-muted); border-radius: 10px; font-weight: 500; }
+.ember .nav-pills .nav-link:hover { color: var(--em-text); }
+.ember .nav-pills .nav-link.active, .ember .nav-pills .show > .nav-link { background: var(--em-raised); color: var(--em-text); font-weight: 600; }
+.ember .nav-tabs { border-color: var(--em-line); }
+.ember .nav-tabs .nav-link { color: var(--em-muted); border: 0; border-bottom: 2px solid transparent; }
+.ember .nav-tabs .nav-link.active { background: transparent; color: var(--em-text); border-bottom-color: var(--em-ember); }
+.ember .settings-button { background: var(--em-raised) !important; border-color: var(--em-line) !important; color: var(--em-text) !important; }
+
+/* ---- Tables ---- */
+.ember .table { color: var(--em-text); }
+.ember .table th, .ember .table td { border-color: var(--em-line); }
+.ember .table thead th, .ember .thead-light th, .ember .thead-dark th {
+	background: transparent;
+	color: var(--em-muted);
+	border-color: var(--em-line);
+	font-size: 13px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	font-weight: 500;
+}
+.ember .table-hover tbody tr:hover { background: rgba(255, 255, 255, 0.03); color: var(--em-text); }
+.ember .table-striped tbody tr:nth-of-type(odd) { background: rgba(255, 255, 255, 0.02); }
+
+/* ---- Modals, dropdowns, toasts, popovers ---- */
+.ember .modal-content {
+	background: var(--em-card);
+	border: 1px solid var(--em-line);
+	border-radius: 20px;
+	color: var(--em-text);
+}
+.ember .modal-header, .ember .modal-footer { border-color: var(--em-line); }
+.ember .modal-header.btn-danger { background: rgba(255, 84, 84, 0.12); color: var(--em-text); border-radius: 20px 20px 0 0; }
+.ember .close { color: var(--em-muted); text-shadow: none; opacity: 1; }
+.ember .close:hover { color: var(--em-text); }
+.ember .modal-backdrop.show { opacity: 0.6; }
+.ember .dropdown-menu { background: var(--em-card); border: 1px solid var(--em-line); border-radius: 14px; }
+.ember .dropdown-item { color: var(--em-text); }
+.ember .dropdown-item:hover, .ember .dropdown-item:focus { background: var(--em-raised); color: var(--em-text); }
+.ember .toast { background: #2A2E31; border: 0; border-radius: 14px; color: var(--em-text); }
+.ember .toast-header { background: transparent; color: var(--em-text); border-color: var(--em-line); }
+.ember .popover { background: var(--em-raised); border-color: var(--em-line); }
+.ember .popover-body { color: var(--em-text); }
+
+/* ---- Alerts, badges, progress ---- */
+.ember .alert { border-radius: 14px; border: 1px solid var(--em-line); background: var(--em-raised); color: var(--em-text); width: 100%; }
+.ember .alert-danger { background: rgba(255, 84, 84, 0.1); border-color: rgba(255, 84, 84, 0.4); }
+.ember .alert-warning { background: rgba(255, 196, 92, 0.08); border-color: rgba(255, 196, 92, 0.35); }
+.ember .alert-success { background: rgba(88, 200, 120, 0.08); border-color: rgba(88, 200, 120, 0.35); }
+.ember .alert-info { background: var(--em-raised); }
+.ember .badge { border-radius: 999px; font-weight: 600; padding: 0.35em 0.7em; }
+.ember .badge-primary, .ember .badge-danger, .ember .badge-warning { background: var(--em-ember); color: #1A0E06; }
+.ember .badge-success { background: #2E7D4A; color: var(--em-text); }
+.ember .badge-secondary, .ember .badge-info, .ember .badge-dark, .ember .badge-light { background: var(--em-raised); color: var(--em-text); }
+.ember .progress { background: var(--em-line); border-radius: 3px; height: 8px; }
+.ember .progress-bar { background: var(--em-ember); }
+.ember .progress-bar.bg-success { background: var(--em-ok) !important; }
+.ember .progress-bar.bg-warning { background: var(--em-warn) !important; }
+.ember .progress-bar.bg-danger { background: var(--em-danger) !important; }
+
+/* ---- Bootstrap colour utilities used across the templates ---- */
+.ember .text-danger { color: var(--em-ember-2) !important; }
+.ember .text-warning { color: var(--em-warn) !important; }
+.ember .text-success { color: var(--em-ok) !important; }
+.ember .text-primary, .ember .text-info { color: var(--em-probe1) !important; }
+.ember .text-secondary { color: var(--em-muted) !important; }
+.ember .bg-light, .ember .bg-white { background: var(--em-card) !important; color: var(--em-text); }
+.ember .border, .ember .border-top, .ember .border-bottom, .ember .border-left, .ember .border-right { border-color: var(--em-line) !important; }
+.ember hr { border-color: var(--em-line); }
+.ember .jumbotron { background: var(--em-card); border-radius: 20px; }
+.ember .page-link { background: var(--em-card); border-color: var(--em-line); color: var(--em-text); }
+.ember .page-item.active .page-link { background: var(--em-ember); border-color: var(--em-ember); color: #1A0E06; }
+.ember .page-item.disabled .page-link { background: var(--em-card); border-color: var(--em-line); color: #4A5055; }
+
+/* ---- Global control panel (bottom bar on the classic pages) ---- */
+.ember .fixed-bottom .card, .ember #controlPanel .card { border-radius: 20px 20px 0 0; border-top: 1px solid var(--em-line); }
+
+/* ---- Timer bar ---- */
+.ember .timer-bar-config .progress { height: 6px; }
+
+/* Scrollbars */
+.ember ::-webkit-scrollbar { width: 10px; height: 10px; }
+.ember ::-webkit-scrollbar-track { background: var(--em-bg); }
+.ember ::-webkit-scrollbar-thumb { background: var(--em-line); border-radius: 5px; }
+
+/* ---- Coloured card headers used by the classic pages (bg-primary text-white...) ---- */
+.ember .card-header[class*="bg-"], .ember .card-footer[class*="bg-"] {
+	background: transparent !important;
+	color: var(--em-muted) !important;
+}
+.ember .card-header[class*="bg-"] .fa, .ember .card-header[class*="bg-"] .fas, .ember .card-header[class*="bg-"] svg { color: var(--em-ember); }
+.ember .text-white { color: var(--em-text) !important; }
+.ember .bg-primary, .ember .bg-info, .ember .bg-secondary, .ember .bg-dark { background-color: var(--em-raised) !important; }
+.ember .bg-success { background-color: #2E7D4A !important; }
+.ember .bg-danger, .ember .bg-warning { background-color: var(--em-ember) !important; color: #1A0E06; }
+
+/* History page: upstream paints the chart card grey in dark mode; the Chart.js defaults are set for dark instead */
+.ember #graphcardbody { background-color: transparent !important; }
+
+/* Event log rows */
+.ember .table-danger, .ember .table-danger > td, .ember .table-danger > th { background: rgba(255, 84, 84, 0.12); color: #FFB3B3; }
+.ember .table-warning, .ember .table-warning > td, .ember .table-warning > th { background: rgba(255, 196, 92, 0.08); color: #FFDCA0; }
+.ember .table-success, .ember .table-success > td, .ember .table-success > th { background: rgba(88, 200, 120, 0.08); color: #A9E8BC; }
+.ember .table-info, .ember .table-info > td, .ember .table-info > th { background: rgba(120, 190, 255, 0.07); color: #BFDFFF; }
+.ember .table-hover .table-danger:hover, .ember .table-hover .table-danger:hover > td { background: rgba(255, 84, 84, 0.18); }
+
+/* Settings / admin section menus on phones sit under the taller Ember navbar */
+@media (max-width: 992px) {
+	.ember .settings-button { top: 61px; border-radius: 0 0 14px 14px; justify-content: center; }
+	.ember #settingsNav { top: 110px; background: var(--em-card); border: 1px solid var(--em-line); border-radius: 14px; padding: 8px; }
+}

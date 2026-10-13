@@ -20,6 +20,14 @@
 		<!-- Navbar CSS -->
 		<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" type="text/css" /> 
 
+		{% set ember_theme = page_theme is defined and page_theme == 'dark' %}
+		{% if ember_theme %}
+		<!-- Ember theme (dark): Barlow fonts served locally + overrides on top of dark Bootstrap -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-barlow.css') }}" type="text/css" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/ember.css') }}" type="text/css" />
+		<meta name="theme-color" content="#0C0E0F">
+		{% endif %}
+
         {% block cssextend %} {% endblock %}
 
         <!-- Adding a Favicon -->
@@ -35,17 +43,25 @@
 		</title>
 
     </head>
-    <body class="{% block body_class %}{% endblock %}">
+    <body class="{% if ember_theme %}ember {% endif %}{% block body_class %}{% endblock %}">
 		<!-- Navbar Header -->
 		<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
 			<a class="navbar-brand text-truncate" {% if request.MOBILE %}style="max-width: 210px;"{% endif %} href="/">
+				{% if ember_theme %}
+				<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF6E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5.5C10 8.5 11 9.5 12 10c0-3 0-5.5 0-8z"></path></svg>
+				<span class="em-brand-text">
+					<span class="em-brand-name">PiFire</span>
+					{% if grill_name is defined and grill_name != '' %}<span class="em-brand-grill" id="navbarGrillName">{{ grill_name }}</span>{% endif %}
+				</span>
+				{% else %}
 				<img src="{{ url_for('static', filename='img/launcher-icon-1x.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">
 				<b>Pi<i class="text-danger">Fire</i></b>
 				{% if grill_name is defined %}
 				{% if grill_name != '' %}
 					| <small class="" id="navbarGrillName">{{ grill_name }}</small> 
 				{% endif %}
-				{% endif %}					
+				{% endif %}
+				{% endif %}
 			</a>
 			<div class="ml-auto d-flex order-0 order-lg-1">
 				{% block timer_toggler %}
@@ -250,5 +266,15 @@
 		</script>
 		{% endblock %}		
 
+		{% if ember_theme %}
+		<!-- Ember theme: readable Chart.js defaults on the dark background (history, cook files, metrics) -->
+		<script>
+			if (window.Chart && window.Chart.defaults) {
+				Chart.defaults.color = '#9AA0A5';
+				Chart.defaults.borderColor = '#24282B';
+				Chart.defaults.font.family = "'Barlow', system-ui, sans-serif";
+			}
+		</script>
+		{% endif %}
     </body>
 </html>

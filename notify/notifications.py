@@ -94,6 +94,8 @@ def check_notify(settings, control, in_data=None, pelletdb=None, grill_platform=
 						if control['mode'] == 'Recipe':
 							if control['recipe']['step_data']['trigger_temps'][item['label']] > 0:
 								control['recipe']['step_data']['triggered'] = True
+						# Orange Pi fork: remember the target that was reached, so dashboards can show "ready"
+						control['notify_data'][index]['achieved'] = item['target']
 						control['notify_data'][index]['req'] = False
 						control['notify_data'][index]['target'] = 0 
 						control['notify_data'][index]['eta'] = None 

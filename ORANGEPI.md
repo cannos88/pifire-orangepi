@@ -23,8 +23,10 @@ Fatto:
 - **Fiamma spenta**: nuovo rilevatore (`controller/flameout.py`, attivo di default in Hold).
 - **Comandi da Home Assistant** via MQTT, con regole di sicurezza.
 - **Simulatore del grill** (`tools/grill_sim`) e **test automatici** su GitHub a ogni push.
+- **Web app**: dashboard *Moderna* e tema scuro *Ember* per tutte le pagine (vedi sotto).
+- **Correzioni a PiFire**: in °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati (es. target e attivazione) si annullavano a vicenda.
 
-Prossimi passi: modulo display HDMI 1024×600, grafica della web app, taratura del simulatore sulle prime cotture vere.
+Prossimi passi: modulo display HDMI 1024×600, traduzione italiana e app installabile, taratura del simulatore sulle prime cotture vere.
 
 ## Preparare l'Orange Pi
 
@@ -173,8 +175,24 @@ pip install -r tests/requirements.txt
 python -m pytest tests
 ```
 
+## Web app
+
+**Dashboard Moderna** (`dashboard/modern.json`, `blueprints/dash/templates/modern/`, `blueprints/dash/static/modern/`), quella del mockup approvato:
+- temperatura del grill grande, modalità, tempo di cottura, target e Smoke+;
+- controllo che cambia con lo stato: *Accendi il grill* / *Solo monitoraggio* da spento; conto alla rovescia durante accensione e spegnimento; con il fuoco acceso Affumicatura / Mantenimento / Spegnimento, − e + (il comando parte 1,3 s dopo l'ultimo tocco), preset e interruttore Smoke+;
+- grafico di 30′, 90′ o 3 h con la linea tratteggiata del target;
+- una scheda per sonda: tocca la scheda per impostare il target (con valori tipici per manzo, maiale, pollo, pulled pork); mostra il tempo stimato e diventa verde con *PRONTO* quando ci arriva;
+- timer con 15′/30′/1 h o durata a scelta, con spegnimento o mantenimento in caldo alla fine;
+- stato di ventola, coclea e candeletta, pellet usato nella cottura (stima dal tempo della coclea).
+
+Accensione, spegnimento e Stop chiedono conferma. Stop col fuoco acceso avvisa che è meglio lo spegnimento.
+
+**Tema Ember**: con *Settings → Theme → Dark* tutte le pagine prendono la stessa grafica (`static/css/ember.css`). La dashboard Moderna lo usa sempre. I font Barlow sono inclusi nel progetto (`static/font/barlow/`), quindi funziona anche senza internet; tolto dal CSS scuro di Bootstrap il caricamento di un font da Google.
+
+Su un'installazione nuova sono già impostati dashboard Moderna e tema scuro. Su una esistente: *Settings → Dashboard → Moderna (Ember)* e *Settings → Theme*.
+
 ## Grafica
 
 - Display: bozze in `docs-orangepi/display-mockups/` (`python render_5in.py` le rigenera). Font Barlow (SIL Open Font License) e icone FontAwesome già incluse in PiFire. Le bozze da 5″ sono a 800×480: vanno adattate al display scelto (1024×600).
-- Web app: mockup interattivo [PiFire Web App](https://claude.ai/artifact/Jf3y8ExsQ29xC1qzHDu1rX).
+- Web app: mockup interattivo [PiFire Web App](https://claude.ai/artifact/Jf3y8ExsQ29xC1qzHDu1rX), realizzato nella dashboard Moderna.
 - Piano di lavoro e lista della spesa: [PiFire Orange Pi](https://claude.ai/artifact/RDBWNfmtbJo1nxR27YnyJm).

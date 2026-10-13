@@ -26,6 +26,7 @@ Fatto:
 - **Web app**: dashboard *Moderna* e tema scuro *Ember* per tutte le pagine (vedi sotto).
 - **Rete Wi-Fi di emergenza**: se il grill resta senza Wi-Fi accende la rete aperta *PiFire-Setup* per sceglierne una nuova dal telefono (vedi sotto).
 - **Correzioni a PiFire**: in °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati (es. target e attivazione) si annullavano a vicenda.
+- **Sicurezza e pulizia**: corrette falle di PiFire originale nella web app, librerie aggiornate, controllo settimanale delle vulnerabilità (vedi *Sicurezza e dipendenze*).
 
 Prossimi passi: modulo display HDMI 1024×600, traduzione italiana e app installabile, taratura del simulatore sulle prime cotture vere.
 
@@ -183,9 +184,32 @@ python -m tools.grill_sim --scenario flameout --no-flameout-detect   # comportam
 
 Nota: i parametri dei controller (PB, Td, Ti, finestre) sono **in °F** anche quando PiFire mostra i °C.
 
+## Sicurezza e dipendenze
+
+Corretto rispetto a PiFire originale:
+- **Comandi di sistema dalla web app**: cambio ramo degli aggiornamenti e cancellazione delle ricette costruivano un comando di shell con testo preso dalla richiesta (es. `x; reboot`). Ora non passa più nulla dalla shell e il ramo deve esistere davvero.
+- **Percorsi dei file**: download e cancellazione di ricette, cotture e log accettavano nomi come `../settings.json` o `/etc/passwd`. Ora sono limitati alla loro cartella (`common/safe_paths.py`).
+- **Web app solo dietro nginx**: gunicorn ascolta su `127.0.0.1:8000` invece che su tutta la rete; si entra solo dalla porta 80/443.
+- Ricerca dispositivi WLED: chiamava uno script inesistente, ora funziona. Caricamento di una cottura: salvava in una cartella sbagliata.
+
+Librerie aggiornate per vulnerabilità note: Pillow 12.3.0, Flask 3.1.3, zeroconf 0.151.5, redis 6.4.0 (la 5.x si portava dietro PyJWT 2.9 vulnerabile), jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Tolto il pacchetto `uuid` di PyPI, un modulo Python 2 inutile (si usa quello della libreria standard).
+
+Controlli automatici:
+- il workflow dei test, ogni lunedì e a ogni push, installa le librerie del grill e le confronta con il database delle vulnerabilità (`pip-audit`); se ne trova una il run fallisce e GitHub ti manda una mail;
+- **Dependabot** (`.github/dependabot.yml`) apre ogni settimana le pull request di aggiornamento verso `orangepi-dev`. Per gli avvisi di sicurezza attiva anche *Settings → Code security → Dependabot alerts* nel repository.
+
+Limiti noti, da affrontare più avanti:
+- la web app non ha login: chiunque sia sulla rete di casa può comandare il grill (come in PiFire originale);
+- l'installer di PiFire dà all'utente della web app permessi di amministratore ampi (sudo per bash, apt, cp) per aggiornamenti e wizard;
+- eventlet è deprecato e gunicorn dalla 24 non ha più il suo worker: gunicorn resta fermo alla 23 finché non si passa a un altro server;
+- Bootstrap 4 non è più mantenuto (l'unica falla nota riguarda il carosello, con contenuti che qui non arrivano dall'utente); il passaggio a Bootstrap 5 tocca tutte le pagine classiche.
+
+Nel codice di PiFire originale restano piccole cose inutilizzate (import, variabili): le lascio per non complicare l'importazione dei loro aggiornamenti. I moduli per hardware diverso (altri display, sonde, Raspberry) restano perché sono opzioni del wizard.
+
 ## GitHub Actions
 
 - **Orange Pi tests**: a ogni push su `orangepi-dev` e `orangepi-stable` gira la suite completa su Python 3.11 e 3.13. Il confronto del simulatore viene allegato alla run, con grafico e numeri.
+- **Vulnerabilità**: stesso workflow, job *audit*, anche ogni lunedì mattina.
 - **Promote to stable**: si lancia a mano dalla scheda Actions. Ripete i test e, solo se passano, porta `orangepi-stable` allo stato di `orangepi-dev` e crea un tag `stable-AAAAMMGG-HHMM`. Il grill installa e aggiorna da `orangepi-stable`.
 
 Per vedere "Promote to stable" nella scheda Actions, imposta `orangepi-dev` come ramo predefinito: Settings → General → Default branch. Il workflow "Deploy static content to Pages" ereditato da PiFire fallisce sui repository privati senza GitHub Pages: si può disattivare dalla scheda Actions.

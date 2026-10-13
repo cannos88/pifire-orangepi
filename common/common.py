@@ -54,7 +54,7 @@ COLOR_LIST = [
 ]
 
 # Setup Command / Status database connection Global 
-cmdsts = redis.StrictRedis('localhost', 6379, charset="utf-8", decode_responses=True)
+cmdsts = redis.StrictRedis('localhost', 6379, encoding="utf-8", decode_responses=True)  # 'charset' was removed in redis-py 6
 
 
 '''

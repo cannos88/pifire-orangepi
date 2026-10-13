@@ -1,7 +1,7 @@
 
 import datetime
 import os
-from flask import render_template, request, current_app, jsonify, redirect, send_file
+from flask import render_template, request, current_app, jsonify, redirect, send_file, abort
 from werkzeug.utils import secure_filename
 from common.common import read_settings, epoch_to_time, generate_uuid
 from common.app import prepare_annotations, prepare_metrics_csv, allowed_file, prepare_csv, prepare_event_totals, paginate_list, create_safe_name
@@ -9,7 +9,26 @@ from file_mgmt.cookfile import read_cookfile, upgrade_cookfile
 from file_mgmt.common import fixup_assets, read_json_file_data, update_json_file_data, remove_assets
 from file_mgmt.media import add_asset, set_thumbnail, unpack_thumb
 
+from common.safe_paths import safe_join_name, safe_within
 from . import cookfile_bp
+
+# Request fields that name a cook file: a plain name or a path inside the
+# history folder.  Anything else is refused before the handlers run (fork).
+COOKFILE_FIELDS = ('filename', 'cookfilename', 'dl_cookfile', 'dl_eventfile', 'dl_graphfile',
+                   'repairCF', 'upgradeCF', 'ulmediafn', 'ulthumbfn', 'delmedialist')
+
+@cookfile_bp.before_request
+def check_cookfile_paths():
+    if request.method != 'POST':
+        return
+    folder = current_app.config['HISTORY_FOLDER']
+    data = (request.get_json(silent=True) or {}) if request.is_json else request.form
+    for field in COOKFILE_FIELDS:
+        value = data.get(field) if hasattr(data, 'get') else None
+        if value is None:
+            continue
+        if not (safe_join_name(folder, value) or safe_within(value, folder)):
+            abort(400)
 
 @cookfile_bp.route('/', methods=['POST','GET'])
 def cookfile_page():
@@ -160,7 +179,7 @@ def cookfile_page():
                 # empty file without a filename.
                 if remotefile and allowed_file(remotefile.filename):
                     filename = secure_filename(remotefile.filename)
-                    remotefile.save(os.path.join('HISTORY_FOLDER', filename))
+                    remotefile.save(os.path.join(HISTORY_FOLDER, filename))
                 else:
                     errors.append('Disallowed File Upload.')
                 return redirect('/history')

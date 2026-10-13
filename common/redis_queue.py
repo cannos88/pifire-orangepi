@@ -8,7 +8,7 @@ import json
 class RedisQueue():
     def __init__(self, hashname):
         self.hashname = hashname
-        self.redis_db = redis.StrictRedis('localhost', 6379, charset="utf-8", decode_responses=True)
+        self.redis_db = redis.StrictRedis('localhost', 6379, encoding="utf-8", decode_responses=True)
 
     def push(self, data):
         self.redis_db.rpush(self.hashname, json.dumps(data))

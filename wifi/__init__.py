@@ -11,5 +11,4 @@ setup from the web app.
 AP_CONNECTION = 'PiFire-Setup'   # NetworkManager connection name
 AP_SSID = 'PiFire-Setup'         # open network, no password
 AP_ADDRESS = '10.42.0.1'         # NetworkManager "shared" mode default
-AP_NETWORK = '10.42.0.'          # /24 handed out to phones on the emergency network
 AP_URL = f'http://{AP_ADDRESS}'

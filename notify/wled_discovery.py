@@ -5,6 +5,7 @@ Discovers WLED devices on the network using mDNS/Bonjour and HTTP queries
 """
 
 import socket
+import sys
 import requests
 import json
 import threading
@@ -318,7 +319,16 @@ except Exception as e:
         print(f"WLED discovery error: {e}")
         return []
 
-# Test function
+# Command line: `python -m notify.wled_discovery --json [timeout]` is what the
+# web app runs (/api/wled_discover); without --json it prints a readable list.
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == '--json':
+    try:
+        found = discover_wled_devices(int(sys.argv[2]) if len(sys.argv) > 2 else 10)
+        print(json.dumps({'success': True, 'count': len(found), 'devices': found}))
+    except Exception as exc:
+        print(json.dumps({'success': False, 'error': str(exc), 'count': 0, 'devices': []}))
+    sys.exit(0)
+
 if __name__ == "__main__":
     print("Testing WLED Discovery...")
     devices = discover_wled_devices()

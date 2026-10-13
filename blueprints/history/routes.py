@@ -1,10 +1,11 @@
 
 import os
 import time
-from flask import render_template, request, current_app, jsonify, send_file, redirect
+from flask import render_template, request, current_app, jsonify, send_file, redirect, abort
 from common.common import read_settings, read_control, read_current, write_settings, epoch_to_time
 from common.app import create_ui_hash, prepare_annotations, prepare_event_totals, prepare_csv
 from file_mgmt.cookfile import read_cookfile, prepare_chartdata
+from common.safe_paths import safe_join_name
 
 from . import history_bp
 
@@ -67,11 +68,11 @@ def history_page(action=None):
         response = request.form
         if(action == 'cookfile'):
             if('delcookfile' in response):
-                filename = './history/' + response["delcookfile"]
+                filename = safe_join_name('./history/', response["delcookfile"]) or abort(400)
                 os.remove(filename)
                 return redirect('/history')
             if('opencookfile' in response):
-                cookfilename = HISTORY_FOLDER + response['opencookfile']
+                cookfilename = safe_join_name(HISTORY_FOLDER, response['opencookfile']) or abort(400)
                 cookfilestruct, status = read_cookfile(cookfilename)
                 if(status == 'OK'):
                     events = cookfilestruct['events']
@@ -110,7 +111,7 @@ def history_page(action=None):
                         errortype = 'other'
                     return render_template('cferror.html', settings=settings, cookfilename=cookfilename, errortype=errortype, errors=errors, page_theme=settings['globals']['page_theme'], grill_name=settings['globals']['grill_name'])
             if('dlcookfile' in response):
-                filename = './history/' + response['dlcookfile']
+                filename = safe_join_name('./history/', response['dlcookfile']) or abort(400)
                 return send_file(filename, as_attachment=True, max_age=0)
 
         if(action == 'setmins'):

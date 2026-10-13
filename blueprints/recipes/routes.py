@@ -1,7 +1,8 @@
 import os
 from werkzeug.utils import secure_filename
-from flask import render_template, request, current_app, send_file, jsonify, render_template_string
+from flask import render_template, request, current_app, send_file, jsonify, render_template_string, abort
 from common.common import read_settings, read_control
+from common.safe_paths import safe_join_name
 from common.app import paginate_list, allowed_file
 from file_mgmt.common import update_json_file_data, remove_assets
 from file_mgmt.media import add_asset
@@ -28,7 +29,7 @@ def recipes_data(filename=None):
     RECIPE_FOLDER = current_app.config['RECIPE_FOLDER']
 
     if(request.method == 'GET') and (filename is not None):
-        filepath = f'{RECIPE_FOLDER}{filename}'
+        filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
         #print(f'Sending: {filepath}')
         return send_file(filepath, as_attachment=True, max_age=0)
 
@@ -49,7 +50,7 @@ def recipes_data(filename=None):
             # Assume we have request.files and localfile in response
             uploadedfiles = request.files.getlist('assetfiles')
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
 
             errors = []
             for remotefile in uploadedfiles:
@@ -86,7 +87,7 @@ def recipes_data(filename=None):
             return render_template('recipes/_recipefile_list.html', pgntdrf = paginated_recipefile)
         if('recipeview' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             return render_template('recipes/_recipe_view.html', recipe_data=recipe_data, recipe_filename=filename, recipe_filepath=filepath)
         if('recipeedit' in requestform):
@@ -95,12 +96,12 @@ def recipes_data(filename=None):
                 filepath = create_recipefile()
                 filename = filepath.replace(RECIPE_FOLDER, '')
             else: 
-                filepath = f'{RECIPE_FOLDER}{filename}'
+                filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             return render_template('recipes/_recipe_edit.html', recipe_data=recipe_data, recipe_filename=filename, recipe_filepath=filepath)
         if('update' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             if requestform['update'] in ['metadata']:
                 field = requestform['field']
@@ -173,7 +174,7 @@ def recipes_data(filename=None):
                 return '<strong color="red">No Data</strong>'
         if('delete' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             if requestform['delete'] == 'ingredients':
                 recipe = recipe_data['recipe']
@@ -203,7 +204,7 @@ def recipes_data(filename=None):
                 return '<strong color="red">No Data</strong>'
         if('add' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             if requestform['add'] == 'ingredients':
                 new_ingredient = {
@@ -251,7 +252,7 @@ def recipes_data(filename=None):
                 return '<strong color="red">No Data</strong>'
         if('refresh' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             if requestform['refresh'] == 'metadata':
                 render_string = "{% from 'recipes/_macro_recipes.html' import render_recipe_edit_metadata %}{{ render_recipe_edit_metadata(recipe_data) }}"
@@ -272,7 +273,7 @@ def recipes_data(filename=None):
             control = read_control()
             if control['mode'] != 'Recipe':
                 filename = requestform['filename']
-                filepath = f'{RECIPE_FOLDER}{filename}'
+                filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             else: 
                 filepath = control['recipe']['filename']
                 filename = filepath.replace(RECIPE_FOLDER, '')
@@ -281,7 +282,7 @@ def recipes_data(filename=None):
             return render_template('recipes/_recipe_status.html', control=control, recipe_data=recipe_data, recipe_filename=filename, recipe_filepath=filepath)
         if('recipeassetmanager' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             section = requestform['section']
             section_index = int(requestform['index'])
@@ -297,7 +298,7 @@ def recipes_data(filename=None):
 
         if('recipeshowasset' in requestform):
             filename = requestform['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             section = requestform['section']
             section_index = int(requestform['section_index'])
@@ -316,12 +317,12 @@ def recipes_data(filename=None):
         #print(f'Request JSON: {requestjson}')
         if('deletefile' in requestjson): 
             filename = requestjson['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
-            os.system(f'rm {filepath}')
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
+            os.remove(filepath)
             return jsonify({'result' : 'success'})
         if('assetchange' in requestjson):
             filename = requestjson['filename']
-            filepath = f'{RECIPE_FOLDER}{filename}'
+            filepath = safe_join_name(RECIPE_FOLDER, filename) or abort(400)
             recipe_data, status = read_recipefile(filepath)
             section = requestjson['section']
             section_index = requestjson['index']

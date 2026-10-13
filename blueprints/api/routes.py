@@ -104,16 +104,14 @@ def api_page(action=None, arg0=None, arg1=None, arg2=None, arg3=None):
 				timeout = request.args.get('timeout', 10, type=int)
 				timeout = max(5, min(30, timeout))  # Clamp between 5-30 seconds
 				
-				# Use standalone script to avoid threading conflicts with eventlet/gunicorn
-				script_path = '/usr/local/bin/pifire/wled_discover_standalone.py'
-				python_path = '/usr/local/bin/pifire/bin/python3'
-				
-				# Run discovery in a separate process
+				# Run discovery in a separate process to avoid threading conflicts with
+				# eventlet/gunicorn.  Upstream pointed at a wled_discover_standalone.py
+				# that is not in the repository; the module has a --json mode (fork).
 				process = subprocess.Popen(
-					[python_path, script_path, str(timeout)],
+					[sys.executable, '-m', 'notify.wled_discovery', '--json', str(timeout)],
 					stdout=subprocess.PIPE,
 					stderr=subprocess.PIPE,
-					cwd='/usr/local/bin/pifire'
+					cwd=os.getcwd()
 				)
 				
 				stdout, stderr = process.communicate(timeout=timeout + 15)

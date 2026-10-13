@@ -1,11 +1,31 @@
 
-import os
+import re
+import shlex
+import subprocess
 import time
 from flask import render_template, request, jsonify, redirect, render_template_string
 from common.common import read_settings, read_control, write_log, is_real_hardware
-from updater import get_available_updates, get_update_data, get_updater_install_status, set_updater_install_status, get_log
+from updater import get_available_updates, get_update_data, get_updater_install_status, set_updater_install_status, get_log, get_available_branches
 
 from . import update_bp
+
+BRANCH_NAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$')
+
+
+def run_updater(python_exec, *args):
+    '''
+    Start updater.py in the background without a shell (fork): upstream used
+    os.system(f'... -b {branch} &') with the branch name taken from the form.
+    '''
+    subprocess.Popen(shlex.split(python_exec) + ['updater.py'] + list(args), start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def valid_branch(name):
+    if not name or not BRANCH_NAME.match(name) or '..' in name:
+        return False
+    branches, _ = get_available_branches()
+    return name in branches
 
 @update_bp.route('/<action>', methods=['POST','GET'])
 @update_bp.route('/', methods=['POST','GET'])
@@ -64,7 +84,7 @@ def update_page(action=None):
 
         if 'update_remote_branches' in r:
             if is_real_hardware():
-                os.system(f'{python_exec} updater.py -r &')	 # Update branches from remote 
+                run_updater(python_exec, '-r')  # Update branches from remote 
                 time.sleep(5)  # Artificial delay to avoid race condition
             return redirect('/update')
 
@@ -82,9 +102,22 @@ def update_page(action=None):
                                     page_theme=settings['globals'].get('page_theme', 'light'),
                                     grill_name=settings['globals'].get('grill_name', '')
                                     )
+            elif not valid_branch(r['branch_target']):
+                alert = {
+                    'type' : 'error',
+                    'text' : 'Unknown branch.'
+                }
+                return render_template(
+                                    'update/updater.html', 
+                                    alert=alert, 
+                                    settings=settings,
+                                    update_data=update_data,
+                                    page_theme=settings['globals'].get('page_theme', 'light'),
+                                    grill_name=settings['globals'].get('grill_name', '')
+                                    )
             else:
                 set_updater_install_status(0, 'Starting Branch Change...', '')
-                os.system(f'{python_exec} updater.py -b {r["branch_target"]} &')	# Kickoff Branch Change
+                run_updater(python_exec, '-b', r['branch_target'])  # Kickoff Branch Change
                 return render_template(
                                     'update/updater-status.html', 
                                     page_theme=settings['globals'].get('page_theme', 'light'),
@@ -94,7 +127,7 @@ def update_page(action=None):
             control = read_control()
             if control['mode'] == 'Stop':
                 set_updater_install_status(0, 'Starting Update...', '')
-                os.system(f'{python_exec} updater.py -u {update_data["branch_target"]} -p &') # Kickoff Update
+                run_updater(python_exec, '-u', update_data['branch_target'], '-p')  # Kickoff Update
                 return render_template(
                                     'update/updater-status.html', 
                                     page_theme=settings['globals'].get('page_theme', 'light'),
@@ -119,7 +152,7 @@ def update_page(action=None):
             control = read_control()
             if control['mode'] == 'Stop':
                 set_updater_install_status(0, 'Starting Upgrade...', '')
-                os.system(f'{python_exec} updater.py -i &')
+                run_updater(python_exec, '-i')
                 return render_template(
                                     'update/updater-status.html', 
                                     page_theme=settings['globals'].get('page_theme', 'light'),

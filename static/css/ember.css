@@ -273,7 +273,7 @@ body.ember {
 .ember .bg-danger, .ember .bg-warning { background-color: var(--em-ember) !important; color: #1A0E06; }
 
 /* History page: upstream paints the chart card grey in dark mode; the Chart.js defaults are set for dark instead */
-.ember #graphcardbody { background-color: transparent !important; }
+.ember #graphcardbody, .ember #stopcardbody { background-color: transparent !important; }
 
 /* Event log rows */
 .ember .table-danger, .ember .table-danger > td, .ember .table-danger > th { background: rgba(255, 84, 84, 0.12); color: #FFB3B3; }

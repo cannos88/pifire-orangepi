@@ -59,7 +59,6 @@ class PlantState:
 	lit: bool = False
 	igniter_on_s: float = 0.0
 	fed_g: float = 0.0
-	burnt_g: float = 0.0
 	lid_open: bool = False
 	fan_on: bool = True
 	in_transit: collections.deque = field(default_factory=collections.deque)
@@ -106,7 +105,6 @@ class PelletGrill:
 			air_limit = p.max_burn_g_s if fan_on else p.max_burn_g_s * 0.15
 			burn = min(s.fuel_g / p.burn_tau_s, air_limit)
 			s.fuel_g -= burn * dt
-			s.burnt_g += burn * dt
 			if s.fuel_g < 0.05 and burn < 0.002:
 				s.lit = False  # fire pot burnt out
 

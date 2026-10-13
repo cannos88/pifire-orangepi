@@ -16,11 +16,12 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Scheda** | Modulo di piattaforma `grillplat/orangepi_zero2w.py`: GPIO con libgpiod, PWM hardware via sysfs, temperatura CPU e Wi-Fi senza gli strumenti del Raspberry. Le impostazioni restano in numeri GPIO Raspberry e vengono tradotte sul pin dell'Orange Pi nella stessa posizione dell'header. |
 | **Installazione** | Script di preparazione per Armbian (Debian 13 trixie), verifica di pin, I2C, SPI e relè, installer che scarica da questo repository privato con una deploy key in sola lettura. |
 | **Controllo** | I PID ora lavorano correttamente in °C (prima i parametri, pensati in °F, davano un controllo diverso). Tolto il "colpo" derivativo del primo ciclo. |
-| **Sicurezza** | Rilevatore di fiamma spenta in Mantenimento: riduce il pellet appena sospetta lo spegnimento e avvia la riaccensione prima che il braciere si riempia di pellet crudo. Distingue il coperchio aperto. |
+| **Fiamma spenta** | Rilevatore di fiamma spenta in Mantenimento: riduce il pellet appena sospetta lo spegnimento e avvia la riaccensione prima che il braciere si riempia di pellet crudo. Distingue il coperchio aperto. |
 | **Home Assistant** | Comandi via MQTT (modalità, temperatura, Smoke+) con regole di sicurezza; l'accensione da remoto è disattivata di default. |
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
 | **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
-| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda. |
+| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano. |
+| **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie aggiornate, controllo settimanale delle vulnerabilità e Dependabot. |
 | **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
 Tutte le funzioni di PiFire restano: ricette, storico delle cotture, notifiche, Smart Start, gestione del pellet, aggiornamenti dalla web app.
@@ -114,6 +115,7 @@ La guida passo passo è in **[ORANGEPI.md](ORANGEPI.md)**. In breve:
 
 GitHub Actions:
 - **[Orange Pi tests](https://github.com/cannos88/pifire-orangepi/actions/workflows/orangepi-tests.yml)**: a ogni push su `orangepi-dev` e `orangepi-stable`, test su Python 3.11 e 3.13, controllo degli script e confronto dei controller sul simulatore (report scaricabile dalla pagina del run).
+- Lo stesso workflow controlla ogni lunedì le librerie del grill con `pip-audit`; Dependabot propone gli aggiornamenti con una pull request.
 - **Promote to stable**: si avvia a mano dalla scheda *Actions*; ripete i test e, se passano, porta `orangepi-stable` allo stato di `orangepi-dev` con un tag `stable-AAAAMMGG-HHMM`.
 
 Per importare gli aggiornamenti di PiFire originale:

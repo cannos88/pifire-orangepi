@@ -22,6 +22,7 @@ from flask import request
 from app import socketio
 from config import Config
 from file_mgmt.recipes import read_recipefile, get_recipefilelist
+from common.safe_paths import safe_join_name
 from base64 import b64encode
 from datetime import datetime
 from threading import Event
@@ -628,13 +629,17 @@ def _post_app_data(action=None, type=None, json_data=None):
         if type == 'recipe_delete':
             if request['recipes_action']['filename']:
                 filename = request['recipes_action']['filename']
-                filepath = f'{recipe_folder}{filename}'
-                os.system(f'rm {filepath}')
+                filepath = safe_join_name(recipe_folder, filename)
+                if filepath is None:
+                    return _response(result='Error', message='Error: invalid recipe file name')
+                os.remove(filepath)
                 return _response(result='OK')
         elif type == 'recipe_start':
             if request['recipes_action']['filename']:
                 control = read_control()
                 filename = request['recipes_action']['filename']
+                if safe_join_name(recipe_folder, filename) is None:
+                    return _response(result='Error', message='Error: invalid recipe file name')
                 control['updated'] = True
                 control['mode'] = 'Recipe'
                 control['recipe']['filename'] = recipe_folder + filename

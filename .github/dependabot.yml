@@ -1,0 +1,34 @@
+# Weekly pull requests that update pinned dependencies (to orangepi-dev).
+# Merge them after the tests pass; promote to stable as usual.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/auto-install"
+    target-branch: orangepi-dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # Raspberry-only or unmaintained packages kept for upstream compatibility
+      - dependency-name: "rpi_hardware_pwm"
+      - dependency-name: "bluepy"
+      - dependency-name: "netifaces"
+      # gunicorn: newer majors drop the eventlet worker PiFire uses
+      - dependency-name: "gunicorn"
+        update-types: ["version-update:semver-major"]
+    labels: ["dipendenze"]
+
+  - package-ecosystem: pip
+    directory: "/tests"
+    target-branch: orangepi-dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels: ["dipendenze"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: orangepi-dev
+    schedule:
+      interval: monthly
+    labels: ["dipendenze"]

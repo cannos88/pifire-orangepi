@@ -1,8 +1,9 @@
 
 import os
-from flask import render_template, request, send_file, current_app
+from flask import render_template, request, send_file, current_app, abort
 from common.common import read_settings, read_control, read_log_file, add_line_numbers
 from common.app import paginate_list, allowed_file
+from common.safe_paths import safe_join_name
 
 from . import logs_bp
 
@@ -25,11 +26,11 @@ def logs_page(action=None):
         requestform = request.form 
 
         if 'download' in requestform:
-            log_file_name = LOGS_FOLDER + requestform['selectLog']
+            log_file_name = safe_join_name(LOGS_FOLDER, requestform['selectLog']) or abort(400)
             return send_file(log_file_name, as_attachment=True, max_age=0)
         elif 'eventslist' in requestform:
             log_file_name = requestform['logfile']
-            event_list = read_log_file(LOGS_FOLDER + log_file_name)
+            event_list = read_log_file(safe_join_name(LOGS_FOLDER, log_file_name) or abort(400))
             event_list = add_line_numbers(event_list)
             page = int(requestform['page'])
             reverse = True if requestform['reverse'] == 'true' else False

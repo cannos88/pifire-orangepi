@@ -345,10 +345,6 @@ class Button:
 	def is_active(self):
 		return self._line.get()
 
-	@property
-	def is_pressed(self):
-		return self.is_active
-
 	def close(self):
 		self._line.close()
 

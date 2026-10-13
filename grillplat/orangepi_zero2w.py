@@ -34,7 +34,6 @@
 """
 
 import os
-import subprocess
 from common import is_float, create_logger, get_os_info
 from grillplat.opi_gpio import OutputDevice, Button, SysfsPWM, StoppableThread, \
 	bcm_to_pwm_channel, bcm_to_physical, is_console_pin, find_main_chip

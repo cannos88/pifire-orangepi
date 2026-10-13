@@ -22,6 +22,11 @@
 #          Example usage: curl https://raw.githubusercontent.com/nebhead/pifire/development/auto-install/install.sh | bash -s -- -devrepo
 # -venv: Use this option to force vanilla venv install
 # -uv:   Use this option to force the use of UV 
+#
+# Environment variables (optional):
+# PIFIRE_REPO:   Git URL to clone instead of https://github.com/nebhead/pifire
+#                (e.g. a fork, or git@github.com:user/repo.git with a deploy key for a private repo)
+# PIFIRE_BRANCH: Branch to clone (overrides -devrepo)
 
 # Install script version variable for logging
 INSTALL_SCRIPT_VERSION="1.10.x"
@@ -225,8 +230,18 @@ echo "**                                                                     **"
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
 cd /usr/local/bin
 
+# Clone source: a fork or another branch can be selected with PIFIRE_REPO / PIFIRE_BRANCH
+if [[ -n "$PIFIRE_REPO" || -n "$PIFIRE_BRANCH" ]]; then
+    CLONE_REPO="${PIFIRE_REPO:-https://github.com/nebhead/pifire}"
+    CLONE_BRANCH="${PIFIRE_BRANCH:-main}"
+    echo " + Cloning $CLONE_REPO (branch $CLONE_BRANCH)..." | tee -a ~/logs/pifire_install.log
+    $SUDO git clone --depth 1 --branch "$CLONE_BRANCH" "$CLONE_REPO" pifire 2>&1 | tee -a ~/logs/pifire_install.log
+    if [[ ! -f pifire/app.py ]]; then
+        echo " !! Failed to clone $CLONE_REPO. Installation cannot continue." | tee -a ~/logs/pifire_install.log
+        exit 1
+    fi
 # Check if -devrepo option is used
-if [[ $DEV_REPO == "true" ]]; then
+elif [[ $DEV_REPO == "true" ]]; then
     echo " + Cloning development branch..." | tee -a ~/logs/pifire_install.log
     # Replace the below command to fetch development branch
     $SUDO git clone --depth 1 --branch development https://github.com/nebhead/pifire 2>&1 | tee -a ~/logs/pifire_install.log
@@ -333,7 +348,9 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
     fi
     
     # If Raspberry Pi 5, skip rpi.gpio installation as it is not supported
-    if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
+    if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+        echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
+    elif grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
         echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
     else
         echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log
@@ -420,7 +437,9 @@ else
         python -m pip install eventlet 2>&1 | tee -a ~/logs/pifire_install.log
         python -m pip install "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
     fi
-    if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
+    if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+        echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
+    elif grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
         echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
     else
         echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log

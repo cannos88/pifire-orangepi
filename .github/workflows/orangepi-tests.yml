@@ -1,0 +1,58 @@
+# Tests for the Orange Pi port: platform module, controllers, flame-out
+# detector, MQTT remote control and closed-loop scenarios on the grill
+# simulator.  The simulator comparison is attached to every run as an artifact.
+name: Orange Pi tests
+
+on:
+  push:
+    branches: ["orangepi-dev", "orangepi-stable"]
+  pull_request:
+    branches: ["orangepi-dev", "orangepi-stable"]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11: Debian 12 / Orange Pi OS, 3.13: Debian 13 (Armbian trixie)
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Check shell scripts
+        run: |
+          bash -n auto-install/install.sh
+          bash -n auto-install/orangepi/setup.sh
+
+      - name: Run tests
+        run: python -m pytest tests -q
+
+      - name: Simulator comparison
+        if: matrix.python-version == '3.13'
+        run: |
+          mkdir -p sim-report
+          python -m tools.grill_sim --compare pid pid_ac pid_sp pid_clamping --plot sim-report/controllers.png | tee sim-report/controllers.txt
+          python -m tools.grill_sim --scenario flameout --no-flameout-detect | tee sim-report/flameout-without-detector.txt
+          python -m tools.grill_sim --compare pid pid_ac pid_sp pid_clamping --json > sim-report/controllers.json
+
+      - name: Upload simulator report
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-report
+          path: sim-report/

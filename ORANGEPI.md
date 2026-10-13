@@ -19,9 +19,12 @@ Fatto:
 - **Mappa dei pin** `grillplat/opi_gpio.py`: le impostazioni restano in numeri GPIO Raspberry e vengono tradotte sul pin dell'Orange Pi nella stessa posizione dell'header. Verificata contro le tabelle ufficiali di wiringOP.
 - **Wizard**: nuova scheda *"PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W"*.
 - **Installer**: `auto-install/install.sh` accetta `PIFIRE_REPO` / `PIFIRE_BRANCH` e salta `rpi.gpio` fuori dal Raspberry. Script di preparazione e di verifica in `auto-install/orangepi/`.
-- **Test** senza hardware: `tests/opi/` (GPIO e sysfs simulati).
+- **PID in °C**: i controller ora lavorano sempre in °F internamente, come i loro parametri. Prima, in °C, PB e finestre (pensati in °F) davano un controllo diverso da quello previsto. Tolto anche il "colpo" derivativo del primo ciclo (partiva da un valore fittizio di 150°).
+- **Fiamma spenta**: nuovo rilevatore (`controller/flameout.py`, attivo di default in Hold).
+- **Comandi da Home Assistant** via MQTT, con regole di sicurezza.
+- **Simulatore del grill** (`tools/grill_sim`) e **test automatici** su GitHub a ogni push.
 
-Prossimi passi: correzione dei guadagni PID in °C, riconoscimento dello spegnimento fiamma, simulatore del grill, modulo display HDMI 1024×600, comandi da Home Assistant via MQTT.
+Prossimi passi: modulo display HDMI 1024×600, grafica della web app, taratura del simulatore sulle prime cotture vere.
 
 ## Preparare l'Orange Pi
 
@@ -119,10 +122,55 @@ Apri `http://<indirizzo-dell-orange-pi>` e nel wizard scegli:
 - **Pin 33**: niente PWM hardware sull'Orange Pi. Serve solo per l'upgrade futuro a ventola DC: ponticello verso il pin 32 e uscita PWM impostata su GPIO12 (oppure `"pwm_pin": 12` nelle impostazioni della piattaforma).
 - **All'avvio** i pin restano in alta impedenza e il modulo SSR ha resistenze di pull-down sulle basi dei transistor, quindi i relè restano spenti finché PiFire non li comanda. Non abilitare overlay UART2 o PWM4: userebbero i pin 15 e 16, che pilotano i relè.
 
+## Fiamma spenta
+
+PiFire originale si accorge che il fuoco è spento solo quando il grill scende sotto la temperatura di sicurezza dell'avvio (al massimo 38 °C). Nel frattempo il PID vede il grill raffreddarsi e manda la coclea al massimo, riempiendo il braciere di pellet crudo; alla riaccensione può prendere fuoco tutto insieme.
+
+Il rilevatore guarda l'andamento in Hold:
+1. **Sospetto**: la temperatura scende in modo costante per 2,5 minuti con la coclea alta. PiFire riduce il pellet alla quantità che teneva la temperatura prima (appresa durante la cottura).
+2. **Conferma**: se dopo 3 minuti la temperatura continua a scendere anche con quel pellet, parte la riaccensione (o l'errore, se i tentativi sono finiti), come per il controllo di sicurezza originale.
+3. **Coperchio aperto**: fa scendere la temperatura molto più in fretta di un fuoco spento, quindi un calo rapido mette in pausa il rilevatore per 5 minuti.
+
+Nel simulatore (fuoco spento a 110 °C): PiFire originale riaccende dopo 28 minuti con circa 450 g di pellet nel braciere e un picco di 320 °C alla riaccensione; con il rilevatore riaccende dopo circa 6 minuti con circa 50 g e un picco di 190 °C. Coperchio aperto da 1 a 10 minuti: nessun falso allarme. Si disattiva con `"flameout_detect": false` nella sezione `safety` di `settings.json`.
+
+## Home Assistant
+
+Nelle impostazioni MQTT di PiFire ci sono due nuovi interruttori:
+- **Allow remote control**: aggiunge in Home Assistant le entità *Grill Mode* (select), *Hold Temperature* (number) e *Smoke Plus* (switch).
+- **Also allow remote Startup**: disattivato di default.
+
+Regole di sicurezza:
+- temperatura target, Smoke e Hold sono accettati solo con il fuoco acceso;
+- Shutdown è sempre accettato;
+- Stop è rifiutato col fuoco acceso, perché va usato Shutdown che brucia il pellet rimasto;
+- l'accensione da remoto funziona solo se l'hai abilitata.
+
+L'esito di ogni comando (`OK`, `ERROR` o `REFUSED` con il motivo) viene pubblicato su `<id>/command/result`.
+
+## Simulatore
+
+Modello del grill (braciere, ritardo della coclea, inerzia termica, coperchio, fiamma spenta) che fa girare i controller veri di PiFire con la stessa logica di `control.py`. È tarato in modo che il PID standard tenga circa ±4 °C a 107 °C, il risultato che PiFire documenta su un Traeger reale. Serve a confrontare strategie, non a prevedere una cottura.
+
+```bash
+pip install -r tests/requirements.txt
+python -m tools.grill_sim --compare pid pid_ac pid_sp pid_clamping --plot confronto.png
+python -m tools.grill_sim --scenario flameout --no-flameout-detect   # comportamento originale
+```
+
+Nota: i parametri dei controller (PB, Td, Ti, finestre) sono **in °F** anche quando PiFire mostra i °C.
+
+## GitHub Actions
+
+- **Orange Pi tests**: a ogni push su `orangepi-dev` e `orangepi-stable` gira la suite completa su Python 3.11 e 3.13. Il confronto del simulatore viene allegato alla run, con grafico e numeri.
+- **Promote to stable**: si lancia a mano dalla scheda Actions. Ripete i test e, solo se passano, porta `orangepi-stable` allo stato di `orangepi-dev` e crea un tag `stable-AAAAMMGG-HHMM`. Il grill installa e aggiorna da `orangepi-stable`.
+
+Per vedere "Promote to stable" nella scheda Actions, imposta `orangepi-dev` come ramo predefinito: Settings → General → Default branch. Il workflow "Deploy static content to Pages" ereditato da PiFire fallisce sui repository privati senza GitHub Pages: si può disattivare dalla scheda Actions.
+
 ## Test senza hardware
 
 ```bash
-python -m pytest tests/opi
+pip install -r tests/requirements.txt
+python -m pytest tests
 ```
 
 ## Grafica

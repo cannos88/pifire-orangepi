@@ -1,0 +1,56 @@
+# Promotes orangepi-dev to orangepi-stable, the branch the grill installs and
+# updates from.  Run it by hand from the Actions tab when a version is ready:
+# it runs the full test suite first and only then moves orangepi-stable
+# (fast-forward only) and tags the release.
+name: Promote to stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Note per questa versione (facoltativa)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promote-stable
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    uses: ./.github/workflows/orangepi-tests.yml
+
+  promote:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: orangepi-dev
+          fetch-depth: 0
+
+      - name: Fast-forward orangepi-stable to orangepi-dev
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin orangepi-stable >/dev/null; then
+            git fetch origin orangepi-stable
+            if ! git merge-base --is-ancestor origin/orangepi-stable HEAD; then
+              echo "orangepi-stable has commits that are not in orangepi-dev: merge them into orangepi-dev first." >&2
+              exit 1
+            fi
+          fi
+          git push origin HEAD:refs/heads/orangepi-stable
+
+      - name: Tag the release
+        env:
+          NOTES: ${{ github.event.inputs.notes }}
+        run: |
+          TAG="stable-$(date -u +%Y%m%d-%H%M)"
+          git tag -a "$TAG" -m "Stable ${TAG#stable-} $NOTES"
+          git push origin "$TAG"
+          echo "### Promosso $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)" >> "$GITHUB_STEP_SUMMARY"

@@ -196,7 +196,7 @@ Corretto rispetto a PiFire originale:
 - **Web app solo dietro nginx**: gunicorn ascolta su `127.0.0.1:8000` invece che su tutta la rete; si entra solo dalla porta 80/443.
 - Ricerca dispositivi WLED: chiamava uno script inesistente, ora funziona. Caricamento di una cottura: salvava in una cartella sbagliata.
 
-Librerie aggiornate per vulnerabilità note: Pillow 12.3.0, Flask 3.1.3, zeroconf 0.151.5, redis 6.4.0 (la 5.x si portava dietro PyJWT 2.9 vulnerabile), jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Tolto il pacchetto `uuid` di PyPI, un modulo Python 2 inutile (si usa quello della libreria standard).
+Librerie aggiornate per vulnerabilità note: Apprise 1.13.1 (notifiche: con un server di notifica compromesso, un redirect HTTP poteva girare il token a un altro indirizzo; ora i redirect sono disattivati e nel registro eventi non compaiono più gli URL con i token), Pillow 12.3.0, Flask 3.1.3, zeroconf 0.151.5, redis 6.4.0 (la 5.x si portava dietro PyJWT 2.9 vulnerabile), jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Tolto il pacchetto `uuid` di PyPI, un modulo Python 2 inutile (si usa quello della libreria standard).
 
 **Librerie bloccate alla versione rilasciata.** `auto-install/constraints.txt` fissa la versione esatta di tutti i pacchetti Python del grill, anche quelli indiretti (Werkzeug, Jinja2, eventlet...). Installer, updater, script di upgrade e wizard lo usano tutti: un'installazione fatta oggi o tra sei mesi ha le stesse librerie, e niente si aggiorna da solo. numpy e scipy restano quelli di Debian (`python3-scipy`).
 
@@ -222,7 +222,7 @@ Da *Admin → System Updates* il grill scarica il ramo scelto di questo reposito
 
 Cosa arriva con un aggiornamento:
 - **codice, pagine e grafica**: sempre;
-- **librerie Python e passi di sistema**: solo se sono elencati in `updater/updater_manifest.json` per una *build* più nuova di quella installata. Per questo ogni volta che cambio una libreria o una configurazione di sistema aggiungo una voce al manifest e alzo il numero di build (un test lo controlla). La build 71 porta gli aggiornamenti di sicurezza delle librerie e lancia `auto-install/orangepi/ota-system.sh` (configurazione di supervisor e servizio Wi-Fi).
+- **librerie Python e passi di sistema**: solo se sono elencati in `updater/updater_manifest.json` per una *build* più nuova di quella installata. Per questo ogni volta che cambio una libreria o una configurazione di sistema aggiungo una voce al manifest e alzo il numero di build (un test lo controlla). La build 71 porta gli aggiornamenti di sicurezza delle librerie e lancia `auto-install/orangepi/ota-system.sh` (configurazione di supervisor e servizio Wi-Fi). La build 72 aggiorna Apprise alla 1.13.1 (le notifiche non seguono più i redirect HTTP, vedi *Sicurezza e dipendenze*).
 
 Cosa **non** si fa via OTA: i passi di `setup.sh` (nome in rete, fuso orario, blocco del kernel, watchdog, console seriale, overlay, passaggio della rete a NetworkManager). Cambiano come la scheda si avvia o come la si raggiunge: fatti senza nessuno davanti, un errore potrebbe lasciare il grill irraggiungibile. Si fanno una volta, alla prima installazione; se in futuro ne servisse uno nuovo, si rilancia `setup.sh` via SSH e si salta quello che è già fatto.
 

@@ -280,8 +280,15 @@ def _send_apprise_notifications(settings, title_message, body_message):
 	log_level = logging.DEBUG if settings['globals']['debug_mode'] else logging.INFO
 	eventLogger = create_logger('events', filename='./logs/events.log', messageformat='%(asctime)s [%(levelname)s] %(message)s', level=log_level)
 	if(len(settings['notify_services']['apprise']['locations'])):
-		eventLogger.info("Sending Apprise Notifications: " + ", ".join(settings['notify_services']['apprise']['locations']))
-		appriseHandler = apprise.Apprise()
+		# Only the services, not the full URLs: they carry tokens and the event log is shown in the web app (fork)
+		eventLogger.info("Sending Apprise Notifications: " + ", ".join(str(loc).split('://')[0] for loc in settings['notify_services']['apprise']['locations']))
+		# Orange Pi fork: do not follow HTTP redirects, so a compromised or spoofed
+		# notification server cannot bounce the configured token/keys to another host
+		# (PYSEC-2026-4200; the option exists from Apprise 1.11, default still on).
+		try:
+			appriseHandler = apprise.Apprise(asset=apprise.AppriseAsset(http_redirects=False))
+		except TypeError:
+			appriseHandler = apprise.Apprise()
 
 		for location in settings['notify_services']['apprise']['locations']:
 			appriseHandler.add(location)

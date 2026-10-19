@@ -4,7 +4,7 @@
       "server" : "1.10.10",
       "cookfile" : "1.5.0",
       "recipe" : "1.0.0",
-      "build" : 71
+      "build" : 72
     },
     "update_notes" : "",
     "update_warnings" : ""
@@ -172,6 +172,24 @@
         },
         "control": {
           "py_dependencies": [],
+          "apt_dependencies": [],
+          "command_list" : []
+        }
+      }
+    },
+    {
+      "version" : "1.10.10",
+      "build" : 72,
+      "_note" : "Orange Pi fork: Apprise 1.13.1 (PYSEC-2026-4200), notifications without HTTP redirects",
+      "reboot_required" : false,
+      "dependencies" : {
+        "app": {
+          "py_dependencies": [],
+          "apt_dependencies": [],
+          "command_list" : []
+        },
+        "control": {
+          "py_dependencies": ["apprise==1.13.1"],
           "apt_dependencies": [],
           "command_list" : []
         }

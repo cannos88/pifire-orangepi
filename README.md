@@ -66,19 +66,21 @@ Piano di lavoro e lista della spesa: [PiFire Orange Pi](https://claude.ai/artifa
 | Scheda principale | PCB PiFire v4.x.x (relè attivi alti) |
 | Relè | modulo SSR di PiFire per i carichi AC |
 | Sonde | ADS1115 su I2C1 (indirizzo `0x48`) per la sonda del grill e le sonde cibo |
-| Display (in arrivo) | HDMI 5″ IPS 1024×600 capacitivo (MPI5006) + encoder KY-040 |
+| Display (ordinato) | HDMI 5″ IPS 1024×600 capacitivo (MPI5006, 121 × 78 mm) + encoder KY-040 |
 | Ventola | AC originale. Upgrade a ventola DC PWM previsto come opzione futura |
 
-Bozze della schermata del display da 5″, con lo stesso stile della web app (temperatura e grafico a sinistra, sonde e timer sotto; la temperatura si cambia con la manopola o con i preset):
+Bozze delle schermate del display da 5″ a 1024×600, con lo stesso stile della web app: temperatura e grafico, sonde e timer sotto; la temperatura si cambia con la manopola o con i preset; se il grill perde il Wi-Fi compare la rete di emergenza con il QR per collegarsi.
 
 <table>
   <tr>
     <td><img src="docs-orangepi/display-mockups/5in_home.png" alt="Bozza del display: schermata principale"></td>
     <td><img src="docs-orangepi/display-mockups/5in_setpoint.png" alt="Bozza del display: impostazione della temperatura"></td>
   </tr>
+  <tr>
+    <td><img src="docs-orangepi/display-mockups/5in_wifi.png" alt="Bozza del display: rete di emergenza"></td>
+    <td></td>
+  </tr>
 </table>
-
-*Sono bozze a 800×480: la schermata vera sarà a 1024×600, la risoluzione del display scelto.*
 
 Mappa dei pin, collegamenti e precauzioni (console seriale sui pin 8 e 10, pin 33 senza PWM hardware) sono in [ORANGEPI.md](ORANGEPI.md#mappa-dei-pin-pcb-v4--orange-pi-zero-2w).
 

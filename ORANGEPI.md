@@ -130,6 +130,12 @@ Apri `http://pifire.local` (o l'indirizzo IP dell'Orange Pi) e nel wizard scegli
 
 - **Pin 8 e 10**: sono la console seriale di debug. Anche con la console disattivata, U-Boot trasmette sul pin 8 all'avvio. **Metti una resistenza da 1 kΩ in serie sul filo CLK dell'encoder**: evita un cortocircuito se all'accensione l'encoder è fermo con il contatto chiuso verso massa.
 - **Pin 33**: niente PWM hardware sull'Orange Pi. Serve solo per l'upgrade futuro a ventola DC: ponticello verso il pin 32 e uscita PWM impostata su GPIO12 (oppure `"pwm_pin": 12` nelle impostazioni della piattaforma).
+- **Display MPI5006** (5″ IPS, 1024×600, touch capacitivo a 5 punti):
+  - misure 121,1 × 77,9 × 13,9 mm, area visibile 108 × 64,8 mm (circa 9,5 pixel per mm), fori M2.5 a 111,1 × 67,9 mm;
+  - video dalla mini-HDMI dell'Orange Pi, con il nastro FPV nell'ingresso FPC del display oppure con la presa HDMI normale;
+  - touch e alimentazione dallo stesso cavo USB-C **dati** collegato alla porta USB-C OTG dell'Orange Pi (l'altra serve solo per l'alimentazione); consumo 2,3 W, che l'alimentatore da 5 V 6 A copre con ampio margine;
+  - luminosità e contrasto dai tasti OSD del display: la regolazione via USB richiede un programma per Windows, quindi PiFire non la usa;
+  - il display annuncia da solo la risoluzione 1024×600 (EDID) e Linux la usa senza driver. `opi_check.py` lo verifica nella sezione *Display HDMI*: se la risoluzione non è 1024×600, aggiungi `extraargs=video=HDMI-A-1:1024x600@60` in `/boot/armbianEnv.txt` e riavvia.
 - **All'avvio** i pin restano in alta impedenza e il modulo SSR ha resistenze di pull-down sulle basi dei transistor, quindi i relè restano spenti finché PiFire non li comanda. Non abilitare overlay UART2 o PWM4: userebbero i pin 15 e 16, che pilotano i relè.
 
 ## Fiamma spenta
@@ -285,6 +291,6 @@ Sedici ricette in italiano, in °C e tarate sul Pro 22, arrivano con il codice (
 
 ## Grafica
 
-- Display: bozze in `docs-orangepi/display-mockups/` (`python render_5in.py` le rigenera). Font Barlow (SIL Open Font License) e icone FontAwesome già incluse in PiFire. Le bozze da 5″ sono a 800×480: vanno adattate al display scelto (1024×600).
+- Display: bozze a 1024×600 in `docs-orangepi/display-mockups/` (`python render_5in.py` le rigenera): schermata principale, temperatura con manopola e preset, rete di emergenza con QR. Sono disegnate in unità da 1,25 pixel, così i testi hanno la dimensione giusta sul vetro da 108 mm. Font Barlow (SIL Open Font License) e icone FontAwesome già incluse in PiFire.
 - Web app: mockup interattivo [PiFire Web App](https://claude.ai/artifact/Jf3y8ExsQ29xC1qzHDu1rX), realizzato nella dashboard Moderna.
 - Piano di lavoro e lista della spesa: [PiFire Orange Pi](https://claude.ai/artifact/RDBWNfmtbJo1nxR27YnyJm).

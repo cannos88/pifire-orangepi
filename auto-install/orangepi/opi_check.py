@@ -3,7 +3,7 @@
 PiFire on Orange Pi: hardware check
 
 Prints what PiFire needs from the board (GPIO controller, I2C, SPI, PWM,
-serial console) and can exercise the relay outputs and the button/encoder
+serial console, HDMI display and its touch screen) and can exercise the relay outputs and the button/encoder
 inputs of the PiFire PCB v4.x.x.  Run it on the Orange Pi:
 
   sudo python3 auto-install/orangepi/opi_check.py              # report only
@@ -52,6 +52,28 @@ def run(cmd):
 
 def section(title):
 	print(f'\n=== {title} ===')
+
+
+# Display of this grill: MPI5006, 5" IPS 1024x600, HDMI + capacitive touch over USB
+DISPLAY_MODE = '1024x600'
+
+
+def hdmi_connectors(drm='/sys/class/drm'):
+	''' [(connector, status, [modes])] for every HDMI output the kernel sees '''
+	out = []
+	for path in sorted(glob.glob(os.path.join(drm, 'card*-HDMI-A-*'))):
+		modes = (read(os.path.join(path, 'modes'), '') or '').split()
+		out.append((os.path.basename(path), read(os.path.join(path, 'status'), '?'), modes))
+	return out
+
+
+def touch_devices(devices='/proc/bus/input/devices'):
+	''' Names of the input devices that look like a touch screen '''
+	text = read(devices, '') or ''
+	names = [line.split('=', 1)[1].strip('"') for line in text.splitlines() if line.startswith('N: Name=')]
+	# cheap HDMI displays often report a USB-to-I2C bridge for the capacitive panel (CTP)
+	keys = ('touch', 'ctp', 'ft5', 'goodix')
+	return [n for n in names if any(k in n.lower() for k in keys)]
 
 
 def report():
@@ -136,7 +158,23 @@ def report():
 
 	section('SPI')
 	spis = sorted(glob.glob('/dev/spidev*'))
-	print('Device:  ' + (', '.join(spis) if spis else 'nessuno (serve solo per display SPI o MAX31865)'))
+	print('Device:  ' + (', '.join(spis) if spis else 'nessuno (non serve a questo grill)'))
+
+	section('Display HDMI 5" (1024x600) e touch')
+	connectors = hdmi_connectors()
+	if not connectors:
+		print('Nessuna uscita HDMI vista dal kernel (driver video non caricato?)')
+	for name, status, modes in connectors:
+		print(f'  {name}: {status}' + (f', modi: {" ".join(modes[:6])}' if modes else ''))
+		if status == 'connected':
+			if modes and modes[0] == DISPLAY_MODE:
+				print(f'  -> risoluzione {DISPLAY_MODE} proposta dal display  OK')
+			elif DISPLAY_MODE in modes:
+				print(f'  -> {DISPLAY_MODE} disponibile ma non è la prima: vedi ORANGEPI.md, "Display"')
+			else:
+				print(f'  -> {DISPLAY_MODE} non annunciata dal display: vedi ORANGEPI.md, "Display"')
+	touch = touch_devices()
+	print('Touch:   ' + (', '.join(touch) if touch else 'non trovato (serve il cavo USB-C dati tra Orange Pi e display)'))
 
 	section('PWM')
 	chips = sorted(glob.glob('/sys/class/pwm/pwmchip*'))

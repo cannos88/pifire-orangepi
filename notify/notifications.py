@@ -269,6 +269,15 @@ def send_notifications(notify_event, label='Probe', target=0):
 	if settings['notify_services']['wled']['device_address'] != '' and settings['notify_services']['wled']['enabled']:
 		_send_wled_notification(notify_event, control, settings)
 
+def _apprise_handler():
+	'''
+	Orange Pi fork: every Apprise sender (Apprise, Pushover, Pushbullet) does not
+	follow HTTP redirects, so a compromised or spoofed notification server cannot
+	bounce the configured token/keys to another host (PYSEC-2026-4200).
+	'''
+	return apprise.Apprise(asset=apprise.AppriseAsset(http_redirects=False))
+
+
 def _send_apprise_notifications(settings, title_message, body_message):
 	"""
 	Send Apprise Notifications
@@ -282,13 +291,7 @@ def _send_apprise_notifications(settings, title_message, body_message):
 	if(len(settings['notify_services']['apprise']['locations'])):
 		# Only the services, not the full URLs: they carry tokens and the event log is shown in the web app (fork)
 		eventLogger.info("Sending Apprise Notifications: " + ", ".join(str(loc).split('://')[0] for loc in settings['notify_services']['apprise']['locations']))
-		# Orange Pi fork: do not follow HTTP redirects, so a compromised or spoofed
-		# notification server cannot bounce the configured token/keys to another host
-		# (PYSEC-2026-4200; the option exists from Apprise 1.11, default still on).
-		try:
-			appriseHandler = apprise.Apprise(asset=apprise.AppriseAsset(http_redirects=False))
-		except TypeError:
-			appriseHandler = apprise.Apprise()
+		appriseHandler = _apprise_handler()
 
 		for location in settings['notify_services']['apprise']['locations']:
 			appriseHandler.add(location)
@@ -314,7 +317,7 @@ def _send_pushover_notification(settings, title_message, body_message):
 	else:
 		eventLogger.setLevel(logging.INFO)
 
-	appriseHandler = apprise.Apprise()
+	appriseHandler = _apprise_handler()
 
 	token = settings["notify_services"]["pushover"]["APIKey"]
 	public_url = settings["notify_services"]["pushover"]["PublicURL"]
@@ -356,7 +359,7 @@ def _send_pushbullet_notification(settings, title_message, body_message):
 	else:
 		eventLogger.setLevel(logging.INFO)
 
-	appriseHandler = apprise.Apprise()
+	appriseHandler = _apprise_handler()
 
 	api_key = settings['notify_services']['pushbullet']['APIKey']
 	public_url = settings['notify_services']['pushbullet']['PublicURL']
@@ -371,14 +374,14 @@ def _send_pushbullet_notification(settings, title_message, body_message):
 		)
 
 		if result:
-			eventLogger.debug(f'Push Bullet Notification to {api_key} was a success!')
+			eventLogger.debug(f'Push Bullet Notification (key …{str(api_key)[-4:]}) was a success!')
 		else:
-			eventLogger.warning(f'Push Bullet Notification to {api_key} failed!')
+			eventLogger.warning(f'Push Bullet Notification (key …{str(api_key)[-4:]}) failed!')
 
 	except Exception as e:
-		eventLogger.warning(f'Push Bullet Notification to {api_key} failed: {e}')
+		eventLogger.warning(f'Push Bullet Notification (key …{str(api_key)[-4:]}) failed: {e}')
 	except:
-		eventLogger.warning(f'Push Bullet Notification to {api_key} failed for unknown reason.')
+		eventLogger.warning(f'Push Bullet Notification (key …{str(api_key)[-4:]}) failed for unknown reason.')
 
 
 def _send_onesignal_notification(settings, title_message, body_message, channel):

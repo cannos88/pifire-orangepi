@@ -28,7 +28,7 @@ def requirement_pins():
 			line = line.split('#', 1)[0].strip()
 			if '==' in line:
 				name, version = line.split('==', 1)
-				pins[norm(name)] = version.strip()
+				pins[norm(name.split('[', 1)[0])] = version.strip()  # drop extras: influxdb_client[ciso]
 	return pins
 
 
@@ -47,11 +47,11 @@ def test_requirement_pins_reach_installed_grills():
 			for dep in section['py_dependencies']:
 				if '==' in dep:
 					name, version = dep.split('==', 1)
-					latest[norm(name)] = version
+					latest[norm(name.split('[', 1)[0])] = version
 	pins = requirement_pins()
 	stale = {name: (pins[name], latest[name]) for name in pins if name in latest and latest[name] != pins[name]}
 	assert not stale, f'add a manifest entry (new build) for: {stale}'
-	for name in ('flask', 'pillow', 'redis', 'zeroconf'):   # security updates of this fork
+	for name in ('flask', 'pillow', 'redis', 'zeroconf', 'apprise', 'gunicorn'):   # updates of this fork
 		assert latest.get(name) == pins[name]
 
 
@@ -85,6 +85,10 @@ def test_constraints_lock_the_requirements():
 def test_constraints_leave_debian_packages_alone():
 	''' numpy/scipy come from Debian (python3-scipy), scikit-learn is pinned by the installer '''
 	locked = constraint_pins()
-	for name in ('numpy', 'scipy', 'scikit-learn', 'pip', 'setuptools'):
+	for name in ('numpy', 'scipy', 'pip', 'setuptools'):
 		assert name not in locked
-	assert 'eventlet' in locked and 'werkzeug' in locked   # indirect and unpinned before
+	assert 'werkzeug' in locked and 'jinja2' in locked   # indirect dependencies are locked too
+	# web app on gunicorn threads: no eventlet; ML controller on numpy: no scikit-learn
+	for gone in ('eventlet', 'greenlet', 'scikit-learn', 'joblib', 'netifaces'):
+		assert gone not in locked
+	assert 'simple-websocket' in locked and 'networkx' in locked

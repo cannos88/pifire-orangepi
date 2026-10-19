@@ -10,7 +10,8 @@
 #    is NOT done here: done unattended it could cut the grill off the network.
 #    That stays in setup.sh (step 7), run by hand over SSH.
 
-PIFIRE_DIR=/usr/local/bin/pifire
+PIFIRE_DIR=${PIFIRE_DIR:-/usr/local/bin/pifire}
+SUPERVISOR_DIR=${SUPERVISOR_DIR:-/etc/supervisor/conf.d}	# both overridable for the tests
 LOG="$PIFIRE_DIR/logs/ota-system.log"
 mkdir -p "$PIFIRE_DIR/logs"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
@@ -21,9 +22,16 @@ if [[ -x "$PIFIRE_DIR/.venv/bin/python" ]]; then
 else
 	CONF_DIR="$PIFIRE_DIR/auto-install/supervisor/legacy"
 fi
-if [[ -d /etc/supervisor/conf.d ]]; then
-	cp "$CONF_DIR"/control.conf "$CONF_DIR"/webapp.conf /etc/supervisor/conf.d/ \
-		&& log "supervisor: configuration updated from $CONF_DIR (applied at the next restart)"
+if [[ -d "$SUPERVISOR_DIR" ]]; then
+	# install.sh appends "user=<installer user>" to these files; the repo copies do not
+	# have it, so keep the user already configured (else supervisor would run PiFire as root)
+	RUN_USER=$(sed -n 's/^user=//p' "$SUPERVISOR_DIR/webapp.conf" 2>/dev/null | tail -1)
+	[[ -n "$RUN_USER" ]] || RUN_USER=$(stat -c %U "$PIFIRE_DIR")
+	for conf in control.conf webapp.conf; do
+		{ grep -v '^user=' "$CONF_DIR/$conf"; echo "user=$RUN_USER"; } > "$SUPERVISOR_DIR/$conf.new" \
+			&& mv "$SUPERVISOR_DIR/$conf.new" "$SUPERVISOR_DIR/$conf"
+	done
+	log "supervisor: configuration updated from $CONF_DIR for user $RUN_USER (applied at the next restart)"
 fi
 
 # Emergency Wi-Fi network

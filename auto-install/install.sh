@@ -341,18 +341,9 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
     # Installing module dependencies
     echo " - Installing module dependencies... " | tee -a ~/logs/pifire_install.log
 
-    # Install latest eventlet
-    if ! uv pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a ~/logs/pifire_install.log; then
-        echo " !! Failed to install eventlet. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-        exit 1
-    fi
+    # eventlet and influxdb_client: no longer installed here (fork: web app on gunicorn
+    # threads, influxdb_client pinned in requirements.txt)
 
-    # Install influxdb_client with CISO support for better performance
-    if ! uv pip install "${CONSTRAINT_ARGS[@]}" "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log; then
-        echo " !! Failed to install influxdb_client. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-        exit 1
-    fi
-    
     # If Raspberry Pi 5, skip rpi.gpio installation as it is not supported
     if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
         echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
@@ -366,25 +357,7 @@ if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
         fi
     fi
 
-    # If OS_version is "11" or "12", install scikit-learn==1.4.2 else install scikit-learn==1.7.2
-    if [[ "$OS_VERSION" == "11" || "$OS_VERSION" == "12" ]]; then
-        echo " + Installing scikit-learn==1.4.2" | tee -a ~/logs/pifire_install.log
-        if ! uv pip install "${CONSTRAINT_ARGS[@]}" scikit-learn==1.4.2 2>&1 | tee -a ~/logs/pifire_install.log; then
-            echo " !! Failed to install scikit-learn. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-    else
-        # if OSBITS is 64, install scikit-learn==1.7.2
-        if [ "$OS_BITS" = "64" ]; then
-            echo " + Installing scikit-learn==1.7.2" | tee -a ~/logs/pifire_install.log
-            if ! uv pip install "${CONSTRAINT_ARGS[@]}" scikit-learn==1.7.2 2>&1 | tee -a ~/logs/pifire_install.log; then
-                echo " !! Failed to install scikit-learn. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-                exit 1
-            fi
-        else
-            echo " + Skipping scikit-learn installation for 32-bit OS" | tee -a ~/logs/pifire_install.log
-        fi
-    fi
+    # scikit-learn is no longer needed (fork: the ML controller fits its model with numpy)
 
     echo " + Installing modules from requirements.txt one at a time... " | tee -a ~/logs/pifire_install.log
     while IFS= read -r req || [ -n "$req" ]; do
@@ -435,13 +408,8 @@ else
     cd /usr/local/bin/pifire
     source bin/activate
     if ! /bin/python -c "import sys; assert sys.version_info[:2] >= (3,11)" > /dev/null 2>&1; then
-        echo " + System is running a python version lower than 3.11, installing eventlet==0.30.2." | tee -a ~/logs/pifire_install.log;
-        python -m pip install "greenlet==3.1.1" "eventlet==0.30.2" 2>&1 | tee -a ~/logs/pifire_install.log
-        python -m pip install "influxdb_client==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
-    else
-        echo " + System is running a python version 3.11 or higher." | tee -a ~/logs/pifire_install.log
-        python -m pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a ~/logs/pifire_install.log
-        python -m pip install "${CONSTRAINT_ARGS[@]}" "influxdb_client[ciso]==1.48.0" 2>&1 | tee -a ~/logs/pifire_install.log
+        echo " !! Python 3.11 or newer is required (Debian 12 or 13)." | tee -a ~/logs/pifire_install.log
+        exit 1
     fi
     if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
         echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log

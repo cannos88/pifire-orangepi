@@ -36,7 +36,7 @@ from config import ProductionConfig  # ProductionConfig or DevelopmentConfig
 from common.server_status import set_server_status
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # gunicorn gthread worker (fork: no eventlet)
 QRcode(app)
 Mobility(app)
 
@@ -120,7 +120,7 @@ def index():
 ==============================================================================
 '''
 # Initialize Flask-SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # gunicorn gthread worker (fork: no eventlet)
 
 # Register mobile blueprint and provide it with socketio instance
 from blueprints.mobile import mobile_bp, socket_io

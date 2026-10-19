@@ -35,8 +35,8 @@ jobs:
         run: |
           python -m venv /tmp/pifire
           /tmp/pifire/bin/pip install --upgrade pip
-          /tmp/pifire/bin/pip install -c auto-install/constraints.txt -r auto-install/requirements.txt \
-            eventlet "influxdb_client[ciso]==1.48.0" scikit-learn==1.7.2 "gpiod>=2.2,<3"
+          # same set as tools/lock_dependencies.sh (numpy/scipy come from Debian on the grill)
+          /tmp/pifire/bin/pip install -c auto-install/constraints.txt -r auto-install/requirements.txt "gpiod>=2.2,<3"
 
       - name: Known vulnerabilities (pip-audit)
         shell: bash   # -eo pipefail: the step fails when pip-audit finds something

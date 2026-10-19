@@ -100,4 +100,10 @@ def test_handler_routes_commands(monkeypatch):
 	msg = types.SimpleNamespace(topic='PiFire/command/mode', payload=b'Startup')
 	handler._on_message(None, None, msg)
 	assert len(calls) == 1
-	assert published[-1][0] == 'PiFire/command/result' and published[-1][1]['result'] == 'REFUSED'
+	assert published[-1][0] == 'PiFire/command_result' and published[-1][1]['result'] == 'REFUSED'
+
+	# The handler's own answers (or an old retained result) are never treated as commands
+	n = len(published)
+	handler._on_message(None, None, types.SimpleNamespace(topic='PiFire/command/result', payload=b'{"result": "OK"}'))
+	handler._on_message(None, None, types.SimpleNamespace(topic='PiFire/command_result', payload=b'{}'))
+	assert len(published) == n and len(calls) == 1

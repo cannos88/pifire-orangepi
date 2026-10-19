@@ -4,7 +4,7 @@
       "server" : "1.10.10",
       "cookfile" : "1.5.0",
       "recipe" : "1.0.0",
-      "build" : 72
+      "build" : 73
     },
     "update_notes" : "",
     "update_warnings" : ""
@@ -190,6 +190,24 @@
         },
         "control": {
           "py_dependencies": ["apprise==1.13.1"],
+          "apt_dependencies": [],
+          "command_list" : []
+        }
+      }
+    },
+    {
+      "version" : "1.10.10",
+      "build" : 73,
+      "_note" : "Orange Pi fork: library refresh (Apprise 2, redis 8, Pillow 13, gunicorn 26 on threads instead of eventlet, numpy ML controller); supervisor conf via ota-system.sh",
+      "reboot_required" : false,
+      "dependencies" : {
+        "app": {
+          "py_dependencies": ["pillow==13.0.0", "flask_qrcode==3.2.2", "flask_socketio==5.7.0", "simple-websocket==1.1.0", "gunicorn==26.2.0", "gpiozero==2.0.1.post3", "redis==8.1.0", "apprise==2.0.1", "psutil==7.2.2", "rpi_hardware_pwm==0.3.1", "bleak==3.0.2", "influxdb_client[ciso]==1.50.0", "networkx==3.7"],
+          "apt_dependencies": [],
+          "command_list" : [["sudo", "bash", "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"]]
+        },
+        "control": {
+          "py_dependencies": [],
           "apt_dependencies": [],
           "command_list" : []
         }

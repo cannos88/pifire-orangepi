@@ -420,20 +420,10 @@ class GrillPlatform:
 		"""
 		Retrieve network information such as IP address and MAC address.
 		"""
-		import netifaces
-		
-		ifaces = netifaces.interfaces()
-		net_info = {}
-		
-		for iface in ifaces:
-			addrs = netifaces.ifaddresses(iface)
-			ip_addr = addrs.get(netifaces.AF_INET, [{}])[0].get('addr', 'N/A')
-			mac_addr = addrs.get(netifaces.AF_LINK, [{}])[0].get('addr', 'N/A')
-			net_info[iface] = {
-				'ip_address': ip_addr,
-				'mac_address': mac_addr
-			}
-		
+		from grillplat.netinfo import interfaces_info
+
+		net_info = interfaces_info()
+
 		data = {
 			'result' : 'OK',
 			'message' : 'Network information retrieved successfully.',

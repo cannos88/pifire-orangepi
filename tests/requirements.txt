@@ -1,9 +1,8 @@
 # Dependencies for the test suite and the grill simulator (not needed on the grill)
 pytest
-redis==6.4.0
+redis==8.1.0
 ratelimitingfilter==1.5
-psutil==7.0.0
-netifaces==0.11.0
+psutil==7.2.2
 paho-mqtt==2.1.0
 matplotlib
 flask

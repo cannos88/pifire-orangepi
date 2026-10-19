@@ -38,7 +38,7 @@ def test_apprise_without_redirects_and_masked_log(monkeypatch):
 	import notify.notifications as notifications
 	monkeypatch.setattr(notifications, 'apprise', fake)
 	monkeypatch.setattr(notifications, 'create_logger', lambda *a, **k: types.SimpleNamespace(
-		info=logged.append, warning=logged.append, debug=logged.append))
+		info=logged.append, warning=logged.append, debug=logged.append, setLevel=lambda *_: None))
 
 	settings = {'globals': {'debug_mode': False},
 				'notify_services': {'apprise': {'locations': ['tgram://123456:SECRET/987', 'gotify://host/TOKEN']}}}
@@ -47,3 +47,14 @@ def test_apprise_without_redirects_and_masked_log(monkeypatch):
 	assert created and created[0].kw == {'http_redirects': False}
 	assert logged and 'SECRET' not in logged[0] and 'TOKEN' not in logged[0]
 	assert 'tgram' in logged[0] and 'gotify' in logged[0]
+
+
+	# Pushover and Pushbullet go through Apprise too: same asset, key not logged
+	created.clear(); logged.clear()
+	settings['globals']['debug_mode'] = True
+	settings['notify_services']['pushover'] = {'APIKey': 'POTOKEN', 'PublicURL': '', 'UserKeys': 'u1'}
+	settings['notify_services']['pushbullet'] = {'APIKey': 'PBSECRETKEY9', 'PublicURL': ''}
+	notifications._send_pushover_notification(settings, 'Grill', 'Pronto')
+	notifications._send_pushbullet_notification(settings, 'Grill', 'Pronto')
+	assert len(created) == 2 and all(a.kw == {'http_redirects': False} for a in created)
+	assert logged and not any('POTOKEN' in m or 'PBSECRETKEY9' in m for m in logged)

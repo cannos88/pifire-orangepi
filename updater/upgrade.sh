@@ -86,15 +86,6 @@ if [ "$OS_BITS" = "32" ]; then
     fi
     cd /usr/local/bin/pifire    
     source bin/activate
-    # Check for Python 3.11
-    if ! /bin/python -c "import sys; assert sys.version_info[:2] >= (3,11)" > /dev/null 2>&1; then
-        echo " + System is running a python version lower than 3.11, installing eventlet==0.30.2." | tee -a /usr/local/bin/pifire/logs/upgrade.log;
-        python -m pip install "greenlet==3.1.1" "eventlet==0.30.2" 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
-    else
-        echo " + System is running a python version 3.11 or higher." | tee -a /usr/local/bin/pifire/logs/upgrade.log
-        python -m pip install "${CONSTRAINT_ARGS[@]}" eventlet 2>&1 | tee -a /usr/local/bin/pifire/logs/upgrade.log
-    fi
-
     echo " + Installing modules from requirements.txt one at a time... " | tee -a /usr/local/bin/pifire/logs/upgrade.log
     while IFS= read -r req || [ -n "$req" ]; do
         # Strip inline comments and trim whitespace
@@ -163,9 +154,6 @@ else
     # Activate VENV
     source .venv/bin/activate
     
-    # Install latest eventlet
-    echo " + Installing latest eventlet" | tee -a /usr/local/bin/pifire/logs/upgrade.log
-    uv pip install "${CONSTRAINT_ARGS[@]}" eventlet
     echo " + Installing modules from requirements.txt one at a time... " | tee -a /usr/local/bin/pifire/logs/upgrade.log
     while IFS= read -r req || [ -n "$req" ]; do
         # Strip inline comments and trim whitespace

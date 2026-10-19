@@ -8,8 +8,7 @@
 #     so installed grills get them with the OTA update.
 #
 # Use Python 3.13 (Debian 13 / Armbian trixie, the grill's Python).
-# numpy and scipy are left out: on the grill they come from Debian
-# (python3-scipy), and scikit-learn is pinned by the installer itself.
+# numpy and scipy are left out: on the grill they come from Debian (python3-scipy).
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,8 +22,7 @@ trap 'rm -rf "$TMP"' EXIT
 "$PY" -m venv "$TMP/venv"
 "$TMP/venv/bin/pip" install --quiet --upgrade pip
 # Same set the installer puts in the grill's virtual environment
-"$TMP/venv/bin/pip" install --quiet -r "$ROOT/auto-install/requirements.txt" \
-	eventlet "influxdb_client[ciso]==1.48.0" scikit-learn==1.7.2 "gpiod>=2.2,<3"
+"$TMP/venv/bin/pip" install --quiet -r "$ROOT/auto-install/requirements.txt" "gpiod>=2.2,<3"
 
 {
 	echo "# Exact versions of every Python package installed on the grill (direct and indirect)."
@@ -32,7 +30,7 @@ trap 'rm -rf "$TMP"' EXIT
 	echo "# Used as a constraints file by the installer, the updater and the wizard:"
 	echo "# libraries change only with a new release, never on their own."
 	"$TMP/venv/bin/pip" freeze --exclude-editable \
-		| grep -viE '^(numpy|scipy|scikit-learn|pip|setuptools|wheel)==' \
+		| grep -viE '^(numpy|scipy|pip|setuptools|wheel)==' \
 		| sort -f
 } > "$ROOT/auto-install/constraints.txt"
 

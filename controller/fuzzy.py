@@ -45,9 +45,10 @@ class Controller(ControllerBase):
 
         pickle_path = pathlib.Path('./controller/fuzzy.pickle')
         if not pathlib.Path.exists(pickle_path):
-            import subprocess
-            command = ['python', 'update_fuzzy.py']
-            update_fuzzy = subprocess.run(command)
+            import subprocess, sys
+            # Fork: run from the controller folder, where the script writes fuzzy.pickle
+            command = [sys.executable, 'update_fuzzy.py']
+            update_fuzzy = subprocess.run(command, cwd='./controller')
 
         try: 
             with open('./controller/fuzzy.pickle', 'rb') as pickle_file:
@@ -71,7 +72,7 @@ class Controller(ControllerBase):
         self.last_time = now 
 
         if self.last_temp == -99:
-            self.last_temp == current
+            self.last_temp = current  # upstream compared (==) instead of assigning
             cycle_time = self.cycle_time
 
         # Pass inputs to the ControlSystem using Antecedent labels with Pythonic API

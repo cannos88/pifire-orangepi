@@ -20,8 +20,8 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Home Assistant** | Comandi via MQTT (modalità, temperatura, Smoke+) con regole di sicurezza; l'accensione da remoto è disattivata di default. |
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
 | **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
-| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano. |
-| **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie aggiornate e bloccate alla versione rilasciata, controllo settimanale delle vulnerabilità. |
+| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano; i controller ML e Fuzzy non aggiornavano la temperatura precedente. |
+| **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie alle ultime versioni (senza eventlet né scikit-learn, ormai abbandonati) e bloccate alla versione rilasciata, controllo settimanale delle vulnerabilità. |
 | **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
 Tutte le funzioni di PiFire restano: ricette, storico delle cotture, notifiche, Smart Start, gestione del pellet, aggiornamenti dalla web app.
@@ -140,7 +140,7 @@ python -m tools.grill_sim --compare pid pid_ac pid_sp pid_clamping --plot confro
 python -m tools.grill_sim --scenario flameout --no-flameout-detect
 ```
 
-Web app in locale, con la piattaforma *prototype* che finge sonde e relè: servono `redis-server` e i pacchetti dell'installer, poi `python control.py` in un terminale e `gunicorn -k eventlet -b 127.0.0.1:8000 -w 1 app:app` in un altro.
+Web app in locale, con la piattaforma *prototype* che finge sonde e relè: servono `redis-server` e i pacchetti dell'installer, poi `python control.py` in un terminale e `gunicorn -w 1 --threads 50 -b 127.0.0.1:8000 app:app` in un altro.
 
 Struttura delle parti nuove:
 

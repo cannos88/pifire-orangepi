@@ -117,7 +117,7 @@ class MqttNotificationHandler:
 				if self.client == None:
 					
 					# Future: may want to make these configurable
-					self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, transport='tcp', protocol=mqtt.MQTTv5)
+					self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, transport='tcp', protocol=mqtt.MQTTv5)
 					self.client.on_connect = self._on_connect
 					self.client.on_disconnect = self._on_disconnect
 					self.client.on_connect_fail = self._on_connect_fail
@@ -136,13 +136,16 @@ class MqttNotificationHandler:
 				if ret == mqtt.MQTT_ERR_SUCCESS:
 					self.client.loop_start()	#Will run async forever, monitoring mqtt and sending keepalives
 				else:
-					self._mqttLogger.error(f"Error {mqtt.connack_string(ret)} connecting to {settings['broker']}.")
+					self._mqttLogger.error(f"Error {mqtt.error_string(ret)} connecting to {settings['broker']}.")
 					self.client = None
 			except:
 				self._mqttLogger.exception(f'Error occurred connecting to the mqtt broker: ')
 
-	def _on_connect(self, client, userdata, flags, rc, properties):
-		self._mqttLogger.info(f"Connection to '{self._mqtt_settings['broker']}' returned result: '{mqtt.connack_string(rc)}'")
+	# paho-mqtt 2 callback API VERSION2 (VERSION1 is deprecated): reason_code is a ReasonCode
+	def _on_connect(self, client, userdata, flags, reason_code, properties):
+		self._mqttLogger.info(f"Connection to '{self._mqtt_settings['broker']}' returned result: '{reason_code}'")
+		if reason_code.is_failure:
+			return
 		self.last_conn_time = 0
 		self._publish_data(topic=f"{self._mqtt_settings['id']}/availability",payload="online", qos=1)
 
@@ -163,6 +166,8 @@ class MqttNotificationHandler:
 		''' Remote control commands on <id>/command/<name> (see notify/mqtt_control.py) '''
 		try:
 			command = msg.topic.split('/')[-1]
+			if msg.topic != f"{self.pifire_id}/command/{command}" or command == 'result':
+				return	# not a command (e.g. an old retained <id>/command/result): never answer it
 			payload = msg.payload.decode('utf-8')
 			arglist, reason = handle_command(command, payload, read_control(), self._mqtt_settings, self._units)
 			if arglist is None:
@@ -172,18 +177,19 @@ class MqttNotificationHandler:
 				result = process_command(action='set', arglist=arglist, origin='mqtt')
 				self._mqttLogger.info(f"MQTT command {command}={payload}: {result['result']} {result['message']}")
 			result = {'command': command, 'value': payload, 'result': result['result'], 'message': result['message']}
-			self._publish_data(topic=f"{self.pifire_id}/command/result", payload=json.dumps(result))
+			# Outside the <id>/command/+ subscription, so the answer never comes back as a command
+			self._publish_data(topic=f"{self.pifire_id}/command_result", payload=json.dumps(result))
 		except:
 			self._mqttLogger.exception('Error processing an MQTT command: ')
 
-	def _on_disconnect(self, client, userdata, rc, properties):
-		if rc != 0:
-			self._mqttLogger.error(f"Disconnect returned result: {mqtt.connack_string(rc)}")
+	def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
+		if reason_code.is_failure:
+			self._mqttLogger.error(f"Disconnect returned result: {reason_code}")
 		else:
-			self._mqttLogger.info(f"Disconnect returned result: {mqtt.connack_string(rc)}")
+			self._mqttLogger.info(f"Disconnect returned result: {reason_code}")
 
-	def _on_connect_fail(self, client, userdata, rc):
-		self._mqttLogger.error(f"Connection failure: {mqtt.connack_string(rc)}")
+	def _on_connect_fail(self, client, userdata):
+		self._mqttLogger.error(f"Connection failure to '{self._mqtt_settings['broker']}'")
 
 	def _check_connection(self):
 
@@ -215,10 +221,10 @@ class MqttNotificationHandler:
 			self._mqttLogger.error(f"Cannot publish data for {topic} because the mqtt connection is lost.")
 			return False
 		elif ret.rc == mqtt.MQTT_ERR_AUTH:
-			self._mqttLogger.error(f"Cannot publish data for {topic} because of error {mqtt.connack_string(ret.rc)}")
+			self._mqttLogger.error(f"Cannot publish data for {topic} because of error {mqtt.error_string(ret.rc)}")
 			self.client = None
 		else:
-			self._mqttLogger.error(f"Cannot publish data for {topic} because of error {mqtt.connack_string(ret.rc)}")
+			self._mqttLogger.error(f"Cannot publish data for {topic} because of error {mqtt.error_string(ret.rc)}")
 			return False
 			
 	def _publish_autodiscover(self, category, topic, payload, qos=2, retain=True, properties=None):
@@ -232,7 +238,7 @@ class MqttNotificationHandler:
 		elif ret.rc == mqtt.MQTT_ERR_CONN_LOST:
 			self._mqttLogger.error(f"Cannot publish autodiscover data for {topic} because the mqtt connection is lost.")
 		else:
-			self._mqttLogger.error(f"Cannot publish autodiscover data for {topic} because of error {mqtt.connack_string(ret.rc)}")
+			self._mqttLogger.error(f"Cannot publish autodiscover data for {topic} because of error {mqtt.error_string(ret.rc)}")
 	
 	def _publish(self, context, data):
 

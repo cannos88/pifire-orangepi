@@ -18,13 +18,29 @@
 '''
 Imported Libraries
 
-Depends on SciKit-Learn
-sudo pip3 install scikit-learn
+Orange Pi fork: the model is an ordinary least-squares linear regression of
+cycle_ratio on (current, setpoint, rate_change), fitted with numpy from
+controller/ml_dataset.csv when the controller starts (191 rows: instant).
+Upstream loaded a scikit-learn LinearRegression pickled in ml_model.joblib,
+which ties the file to one scikit-learn version; the coefficients are the same.
 '''
 import time
+import numpy as np
 from controller.base import ControllerBase 
-from sklearn.linear_model import LinearRegression
-from joblib import dump, load
+
+DATASET = './controller/ml_dataset.csv'
+
+
+class LinearModel:
+	''' Least-squares fit with intercept; predict() mirrors scikit-learn's '''
+	def __init__(self, path=DATASET):
+		data = np.loadtxt(path, delimiter=',', skiprows=1)
+		features = np.c_[data[:, :3], np.ones(len(data))]
+		self.coef, *_ = np.linalg.lstsq(features, data[:, 3], rcond=None)
+
+	def predict(self, rows):
+		rows = np.asarray(rows, dtype=float)
+		return rows @ self.coef[:3] + self.coef[3]
 
 '''
 Class Definition
@@ -32,11 +48,7 @@ Class Definition
 class Controller(ControllerBase):
 	def __init__(self, config, units, cycle_data):
 		super().__init__(config, units, cycle_data)
-		try:
-			self.model = load('./controller/ml_model.joblib')
-		except: 
-			''' Error loading model '''
-			raise
+		self.model = LinearModel()
 		self.set_target(0.0)
 		self.last_temp = -99
 		self.last_time = time.time()
@@ -53,10 +65,11 @@ class Controller(ControllerBase):
 		self.last_time = now 
 
 		if self.last_temp == -99:
-			self.last_temp == current
+			self.last_temp = current  # upstream compared (==) instead of assigning: huge first rate
 			cycle_time = self.cycle_time
 
-		rate_of_change = (current - self.last_temp) / cycle_time  # Rate of Change
+		rate_of_change = (current - self.last_temp) / max(cycle_time, 0.001)  # Rate of Change
+		self.last_temp = current
 
 		cycle_ratio = self.model.predict([[current, self.set_point, rate_of_change]])
 

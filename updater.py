@@ -81,18 +81,6 @@ def get_branch():
 		error_msg = branches.stderr 
 	return(result, error_msg)
 
-def set_branch(branch_target):
-	command = ['git', 'checkout', '-f', branch_target]
-	target = subprocess.run(command, capture_output=True, text=True)
-	error_msg = ''
-	result = ''
-	if target.returncode == 0:
-		result = target.stdout.replace('\n', '<br>') + target.stderr.replace('\n', '<br>')
-	else: 
-		result = 'ERROR Setting Branch'
-		error_msg = target.stderr.replace('\n', '<br>')
-	return(result, error_msg)
-
 def get_remote_url():
 	command = ['git', 'config', '--get', 'remote.origin.url']
 	remote = subprocess.run(command, capture_output=True, text=True)
@@ -135,31 +123,6 @@ def get_available_updates(branch=''):
 		result['message'] = 'ERROR Getting Remote or Branch: ' + error_msg1.replace('\n', ' ') + ' ' + \
 							error_msg2.replace('\n', ' ')
 	return(result)
-
-def do_update():
-	branch, error_msg1 = get_branch()
-	remote, error_msg2 = get_remote_url()
-	if error_msg1 == '' and error_msg2 == '':
-		command = ['git', 'fetch', '--all']
-		fetch = subprocess.run(command, capture_output=True, text=True)
-		command = ['git', 'reset', '--hard', f'origin/{branch}']
-		reset = subprocess.run(command, capture_output=True, text=True)
-
-		'''
-		command = ['git', 'reset', '--hard', 'HEAD']
-		reset = subprocess.run(command, capture_output=True, text=True)
-		command = ['git', 'merge', f'origin/{branch}']
-		merge = subprocess.run(command, capture_output=True, text=True)
-		'''
-		error_msg = ''
-		if fetch.returncode == 0 and reset.returncode == 0:
-			result = fetch.stdout.replace('\n', '<br>') + '<br>' + reset.stdout.replace('\n', '<br>') # + '<br>' + merge.stdout.replace('\n', '<br>')
-		else: 
-			result = 'ERROR Performing Update.'
-			error_msg = fetch.stderr.replace('\n', '<br>') + '<br>' + reset.stderr.replace('\n', '<br>') # + '<br>' + merge.stderr.replace('\n', '<br>')
-	else: 
-		result = 'ERROR Getting Remote URL.'
-	return(result, error_msg)
 
 def get_log(num_commits=10):
 	branch, error_msg = get_branch()
@@ -282,19 +245,6 @@ def install_update():
 		output = ' - ERROR Getting Remote URL. Please check your git install'
 		success = False
 	return(success, status, output)
-
-def read_output(command):
-	process = subprocess.Popen(command, stdout=subprocess.PIPE, encoding='utf-8')
-	while True:
-		output = process.stdout.readline()
-		if process.poll() is not None:
-			break
-		if output:
-			set_updater_install_status(percent, status, output.strip())
-			print(output.strip())
-
-	return_code = process.poll()
-	print(f'Return Code: {return_code}')
 
 def install_dependencies(current_version_string='0.0.0', current_build=None):
 	result = 0
@@ -484,7 +434,7 @@ def install_dependencies(current_version_string='0.0.0', current_build=None):
 		print(f'Return Code: {return_code}')
 
 		percent += increment
-		output = f' - Completed General Dependency Item'
+		output = ' - Completed General Dependency Item'
 		set_updater_install_status(percent, status, output)
 		if DEBUG:
 			print(f'Percent: {percent}')
@@ -524,7 +474,6 @@ if __name__ == "__main__":
 	parser.add_argument('-r', '--remote', action='store_true', required=False, help="Update Remote Branches")
 	parser.add_argument('-p', '--piplist', action='store_true', required=False, help="Output PIP List packages to JSON file.")
 	parser.add_argument('-v', '--uv', action='store_true', required=False, help="Set uv flag and clear venv flag in settings.json")
-	parser.add_argument('-l', '--legacyvenv', action='store_true', required=False, help="Set venv flag in settings.json")
 	parser.add_argument('-d', '--debug', action='store_true', required=False, help="Enable Debug Mode")
 	parser.add_argument('-i', '--installdependencies', action='store_true', required=False, help="Install Dependencies for current version")
 
@@ -596,7 +545,7 @@ if __name__ == "__main__":
 		current_build = settings['versions'].get('build', 0)
 
 		percent = 10
-		status = f'Installing Dependencies for Current Version...'
+		status = 'Installing Dependencies for Current Version...'
 		output = f' - APT, Python and Command Dependencies for version {current_version} ({current_build})'
 		set_updater_install_status(percent, status, output)
 
@@ -632,15 +581,6 @@ if __name__ == "__main__":
 		write_generic_json(settings, 'settings.json')
 		print('Updated settings.json to set uv flag and set venv flag')
 	
-	if args.legacyvenv:
-		num_args += 1
-		settings = read_settings()
-		settings['globals']['uv'] = False
-		settings['globals']['venv'] = True
-		settings['globals']['python_exec'] = 'bin/python'
-		write_generic_json(settings, 'settings.json')
-		print('Updated settings.json to set venv flag and clear uv flag')
-
 	''' If no valid arguments are passed, print help message '''
 	if num_args == 0:
 		print('No valid arguments provided. Use -h for help.')

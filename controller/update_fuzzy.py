@@ -14,7 +14,7 @@ import pickle
 import argparse
 
 def create_fuzzy_pickle(plot=False):
-    print(f'Creating new fuzzy.pickle...')
+    print('Creating new fuzzy.pickle...')
     '''
         Create fuzzy controller & save to pickle 
     '''
@@ -106,10 +106,10 @@ def create_fuzzy_pickle(plot=False):
     with open('fuzzy.pickle', 'wb') as pickle_file:
         pickle.dump(fuzzy_controller, pickle_file)
 
-    print(f'Finished.')
+    print('Finished.')
 
     if plot:
-        print(f'Showing plots...')
+        print('Showing plots...')
         from matplotlib import pyplot  # Require to display plots
         delta.view()
         current.view()

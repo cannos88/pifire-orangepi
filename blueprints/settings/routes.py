@@ -1,6 +1,6 @@
 
 from flask import render_template, request, render_template_string, jsonify
-from common.common import read_settings, read_control, write_settings, write_control, read_generic_json, generate_uuid, convert_settings_units
+from common.common import read_settings, read_control, write_settings, write_control, read_generic_json, generate_uuid
 from common.app import is_not_blank, is_checked
 
 from . import settings_bp
@@ -132,24 +132,6 @@ def settings_page(action=None):
             settings['notify_services']['pushover']['UserKeys'] = response['pushover_userkeys']
         if 'pushover_publicurl' in response:
             settings['notify_services']['pushover']['PublicURL'] = response['pushover_publicurl']
-        if is_checked(response, 'onesignal_enabled'):
-            settings['notify_services']['onesignal']['enabled'] = True
-        else:
-            settings['notify_services']['onesignal']['enabled'] = False
-
-        if is_checked(response, 'influxdb_enabled'):
-            settings['notify_services']['influxdb']['enabled'] = True
-        else:
-            settings['notify_services']['influxdb']['enabled'] = False
-        if 'influxdb_url' in response:
-            settings['notify_services']['influxdb']['url'] = response['influxdb_url']
-        if 'influxdb_token' in response:
-            settings['notify_services']['influxdb']['token'] = response['influxdb_token']
-        if 'influxdb_org' in response:
-            settings['notify_services']['influxdb']['org'] = response['influxdb_org']
-        if 'influxdb_bucket' in response:
-            settings['notify_services']['influxdb']['bucket'] = response['influxdb_bucket']
-
         if is_checked(response, 'mqtt_enabled'):
             settings['notify_services']['mqtt']['enabled'] = True
         else:
@@ -171,60 +153,6 @@ def settings_page(action=None):
         if 'mqtt_id' in response:  # Only when the MQTT card was submitted
             settings['notify_services']['mqtt']['control'] = is_checked(response, 'mqtt_control')
             settings['notify_services']['mqtt']['allow_remote_startup'] = is_checked(response, 'mqtt_remote_startup')
-
-        if 'delete_device' in response:
-            DeviceID = response['delete_device']
-            settings['notify_services']['onesignal']['devices'].pop(DeviceID)
-
-        if 'edit_device' in response:
-            if response['edit_device'] != '':
-                DeviceID = response['edit_device']
-                settings['notify_services']['onesignal']['devices'][DeviceID] = {
-                    'friendly_name' : response['FriendlyName_' + DeviceID],
-                    'device_name' : response['DeviceName_' + DeviceID],
-                    'app_version' : response['AppVersion_' + DeviceID]
-                }
-        """ WLED Notifications Settings """
-        if is_checked(response, 'wled_enabled'):
-            settings['notify_services']['wled']['enabled'] = True
-        else:
-            settings['notify_services']['wled']['enabled'] = False
-        if 'wled_device_address' in response:
-            settings['notify_services']['wled']['device_address'] = response['wled_device_address']
-        if 'wled_notify_duration' in response:
-            settings['notify_services']['wled']['notify_duration'] = max(int(response['wled_notify_duration']), 0)
-            
-        # Suggested presets settings
-        if is_checked(response, 'wled_use_suggested_presets'):
-            settings['notify_services']['wled']['use_suggested_presets'] = True
-        else:
-            settings['notify_services']['wled']['use_suggested_presets'] = False
-            
-        # Suggested preset configuration
-        if 'wled_cooking_color' in response:
-            settings['notify_services']['wled']['suggested_config']['cooking_color'] = response['wled_cooking_color']
-        if 'wled_idle_brightness' in response:
-            settings['notify_services']['wled']['suggested_config']['idle_brightness'] = max(1, min(100, int(response['wled_idle_brightness'])))
-        if 'wled_led_count' in response:
-            settings['notify_services']['wled']['suggested_config']['led_count'] = max(1, min(1000, int(response['wled_led_count'])))
-        if is_checked(response, 'wled_night_mode'):
-            settings['notify_services']['wled']['suggested_config']['night_mode'] = True
-        else:
-            settings['notify_services']['wled']['suggested_config']['night_mode'] = False
-            
-        # Profile-based settings
-        if is_checked(response, 'wled_use_profiles'):
-            settings['notify_services']['wled']['use_profiles'] = True
-            # Disable suggested presets when using profiles
-            settings['notify_services']['wled']['use_suggested_presets'] = False
-        else:
-            settings['notify_services']['wled']['use_profiles'] = False
-            
-        # Profile numbers configuration
-        for state in settings['notify_services']['wled']['profile_numbers']:
-            key = f'wled_profile_{state}'
-            if key in response:
-                settings['notify_services']['wled']['profile_numbers'][state] = max(1, min(250, int(response[key])))
 
         """ Update Control to Indicate a Settings Update """
         control['settings_update'] = True

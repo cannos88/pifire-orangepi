@@ -21,8 +21,9 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
 | **Ricette** | 16 ricette in italiano in °C tarate sul Pro 22, con il programma del grill fase per fase; la dashboard mostra la fase in corso e il pulsante *Continua* quando una fase aspetta te. |
 | **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
-| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano; i controller ML e Fuzzy non aggiornavano la temperatura precedente. |
+| **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; caricamento ed esportazione delle cotture non funzionavano; i controller ML e Fuzzy non aggiornavano la temperatura precedente. |
 | **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie alle ultime versioni (senza eventlet né scikit-learn, ormai abbandonati) e bloccate alla versione rilasciata, controllo settimanale delle vulnerabilità. |
+| **Pulizia** | Tolto il codice per hardware e servizi che questo grill non usa: Raspberry Pi, display SPI/OLED, sonde diverse dall'ADS1115, sonde Bluetooth, dashboard classiche, app Android, InfluxDB, WLED. |
 | **Sviluppo** | Simulatore del grill per provare i controller, test automatici su GitHub, promozione manuale della versione stabile. |
 
 Tutte le funzioni di PiFire restano: ricette, storico delle cotture, notifiche, Smart Start, gestione del pellet, aggiornamenti dalla web app.

@@ -7,7 +7,7 @@
 # Description: This library uses an Orange Pi Zero 2W (Allwinner H618) in
 # place of a Raspberry Pi to control outputs and monitor inputs for PiFire.
 #
-# It is a drop-in replacement for grillplat/raspberry_pi_all.py: same class,
+# It is derived from PiFire's Raspberry Pi module (removed in this fork): same class,
 # same functions, same settings.  Pins in settings.json stay Raspberry Pi BCM
 # numbers, so the PiFire PCBs and the configuration wizard work unchanged;
 # grillplat/opi_gpio.py translates them to the Orange Pi pins on the same
@@ -238,7 +238,6 @@ class GrillPlatform:
 			'check_cpu_temp',
 			'supported_commands',
 			'check_alive',
-			'scan_bluetooth',
 			'os_info',
 			'network_info',
 			'hardware_info'
@@ -365,47 +364,6 @@ class GrillPlatform:
 			'result' : 'OK',
 			'message' : 'The control script is running.',
 			'data' : {}
-		}
-		return data
-
-	def scan_bluetooth(self, arglist):
-		'''
-		 Scan for bluetooth device addresses using bleak (BlueZ D-Bus API).
-		'''
-		import asyncio
-		try:
-			from bleak import BleakScanner
-		except ImportError:
-			return {
-				'result': 'ERROR',
-				'message': 'bleak is not installed. Run: pip install bleak',
-				'data': {'bt_devices': []}
-			}
-
-		bt_devices = []
-		result = 'OK'
-		message = 'Bluetooth scan completed successfully.'
-
-		async def _scan():
-			discovered = await BleakScanner.discover(timeout=5.0)
-			for dev in discovered:
-				name = dev.name or 'Unknown'
-				bt_devices.append({'name': name, 'hw_id': dev.address.lower(), 'info': ''})
-				self.logger.debug(f'scan_bluetooth: Found device {name} ({dev.address})')
-
-		try:
-			asyncio.run(_scan())
-		except Exception as e:
-			result = 'ERROR'
-			message = f'Bluetooth scan error: {e}'
-			self.logger.error(f'scan_bluetooth: Error during scan - {e}')
-
-		data = {
-			'result' : result,
-			'message' : message,
-			'data' : {
-				'bt_devices' : bt_devices
-			}
 		}
 		return data
 

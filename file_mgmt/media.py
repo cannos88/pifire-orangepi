@@ -165,8 +165,8 @@ def unpack_thumb(thumbname, filename, tmp_id):
 
 			if not os.path.exists(f'./static/img/tmp/{tmp_id}/{thumbname}'):
 
-				if not os.path.exists(f'/tmp/pifire'):
-					os.mkdir(f'/tmp/pifire')
+				if not os.path.exists('/tmp/pifire'):
+					os.mkdir('/tmp/pifire')
 
 				if not os.path.exists(f'/tmp/pifire/{tmp_id}'):
 					os.mkdir(f'/tmp/pifire/{tmp_id}')
@@ -179,7 +179,7 @@ def unpack_thumb(thumbname, filename, tmp_id):
 
 				#  Create temporary folder for the thumbnail
 				if not os.path.exists('./static/img/tmp'):
-					os.mkdir(f'./static/img/tmp')
+					os.mkdir('./static/img/tmp')
 				if not os.path.exists(f'./static/img/tmp/{tmp_id}'):
 					os.symlink(f'/tmp/pifire/{tmp_id}', f'./static/img/tmp/{tmp_id}')
 			else:

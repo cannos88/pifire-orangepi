@@ -19,8 +19,10 @@ def dash_page():
     errors = read_errors()
     warnings = read_warnings()
 
-    current = settings['dashboard'].get('current', 'Default')
-    dash_template = f"{current.lower()}/{settings['dashboard']['dashboards'][current].get('html_name', 'dash_default.html')}"
+    current = settings['dashboard'].get('current', 'Modern')
+    if current not in settings['dashboard']['dashboards']:
+        current = 'Modern'  # the classic dashboards were removed (Orange Pi fork)
+    dash_template = f"{current.lower()}/{settings['dashboard']['dashboards'][current].get('html_name', 'dash_modern.html')}"
     dash_data = settings['dashboard']['dashboards'].get(current, {})
     probe_status = read_probe_status(settings['probe_settings']['probe_map']['probe_info'])
 

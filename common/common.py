@@ -17,7 +17,6 @@ Description: This library provides functions that are common to
 import time
 import datetime
 import os
-import io
 import json
 import math
 import redis
@@ -125,7 +124,7 @@ def default_settings():
 		'boot_to_monitor' : False,  # Set to True to boot directly into monitor mode
 		'prime_ignition' : False,  # Set to True to enable the igniter in prime & startup mode
 		'updated_message' : False,   # Set to True to display a pop-up message after the system has been updated 
-		'venv' : True,  # Set to True if running in virtual environment (needed for Raspberry Pi OS Bookworm)
+		'venv' : True,  # PiFire runs in a uv virtual environment
 		'python_exec' : '.venv/bin/python',  # Path to the python executable
 		'uv' : True,  # Set to True to enable UV for pip install
 	}
@@ -135,32 +134,34 @@ def default_settings():
 
 	""" The following are platform related settings, such as pin assignments, etc. """
 	settings['platform'] = {
+		# Orange Pi fork: PiFire PCB v4 pins (Raspberry Pi BCM numbers, translated by
+		# grillplat/opi_gpio.py), the same values the wizard writes for the platform
 		"devices": {
 			"display": {
-				"dc": 24,  # SPI Display (ex. ILI9341) 
-				"led": 5,  # SPI Display (ex. ILI9341) 
-				"rst": 25  # SPI Display (ex. ILI9341) 
+				"dc": 24,
+				"led": 5,
+				"rst": 25
 			},
 			"distance": {
-				"echo": 27,  # HCSR04 Distance Sensor 
-				"trig": 23	 # HCSR04 Distance Sensor 
+				"echo": 27,  # HCSR04 Distance Sensor
+				"trig": 23	 # HCSR04 Distance Sensor
 			},
 			"input": {
-				"down_dt": 20,  # Button (DOWN) or Encoder (DT)
-				"enter_sw": 21, # Button (ENTER) or Encoder (SW)
-				"up_clk": 16    # Button (UP) or Encoder (CLK)
+				"down_dt": 16,  # Encoder (DT) or DOWN button
+				"enter_sw": 15, # Encoder (SW) or ENTER button
+				"up_clk": 14    # Encoder (CLK) or UP button
 			}
 		},
 		"inputs": {
-			"selector": 17,  # Selector input to select between the OEM Controller or PiFire Controller
-			"shutdown" : 17  # Shutdown GPIO Pin if implemented 
+			"selector": None,  # No OEM controller: PiFire only
+			"shutdown" : 17
 		},
-		"outputs": { 
-			"auger": 14,
+		"outputs": {
+			"auger": 23,
 			"dc_fan": 26,
-			"fan": 15,
+			"fan": 26,
 			"igniter": 18,
-			"power": 4,
+			"power": 22,
 			"pwm": 13
 		},
 		"system" : {
@@ -170,13 +171,13 @@ def default_settings():
 			},
 			"1WIRE" : None  # 1WIRE is used for probe devices specifically the DS18B20 
 		},
-		"current" : "custom",
+		"current" : "pcb_4.x.x_opizero2w",  # Orange Pi fork: the only platform
 		"dc_fan": False,  # True if system has a DC Fan (Does not indicate PWM)
 		"triggerlevel": "LOW",  # Active LOW / Active HIGH for the Relay Outputs 
 		"buttonslevel": "HIGH",  # Active LOW / Active HIGH for the button inputs 
 		"standalone": True,  # Standalone (without OEM controller present)
-		"real_hw" : True,  # Set to True if running on real hardware (i.e. Raspberry Pi), False if running in a test environment 
-		"system_type" : "prototype",  # System type / core  (i.e. Raspberry Pi Zero W, Zero 2W, 3A, 3B, 3B+, 4, 5) 
+		"real_hw" : True,  # False when running in a test environment
+		"system_type" : "prototype",  # 'orangepi_zero2w' once the wizard has run on the grill
 	}
 
 	settings['cycle_data'] = {
@@ -340,7 +341,7 @@ def _default_dashboard():
 	Generate default dashboard settings by getting metadata from each json file in the /dashboard folder
 	'''
 	dash_data = {
-		'current' : 'Modern' if os.path.exists('./dashboard/modern.json') else 'Default',  # Orange Pi fork default
+		'current' : 'Modern',  # Orange Pi fork: the only dashboard
 		'dashboards' : {}
 	}
 	# Define the folder path
@@ -458,21 +459,6 @@ def default_notify_services():
 		'PublicURL': '' 	# Used in Pushover notifications
 	}
 
-	services['onesignal'] = {
-		'enabled': False,
-		'uuid' : generate_uuid(),
-		'app_id' : '',
-		'devices' : {}
-	}
-
-	services['influxdb'] = {
-		'enabled': False,
-		'url': '',
-		'token': '',
-		'org': '',
-		'bucket': ''
-	}
-	
 	services['mqtt'] = {
       "broker": "homeassistant.local",
       "enabled": False,
@@ -485,53 +471,6 @@ def default_notify_services():
       "control": False,  # Accept mode / hold temperature / Smoke Plus commands over MQTT (Home Assistant)
       "allow_remote_startup": False  # Also accept Startup over MQTT (the igniter heats with nobody at the grill)
     }
-
-	services['wled'] = {
-		'enabled': False,
-		'device_address': 'wled.local',
-		'use_profiles': True,  # Use profile-based control (recommended)
-		'use_suggested_presets': False,  # Use PiFire suggested LED behaviors instead of user presets (legacy)
-		'profile_numbers': {
-			# Default profile numbers for each PiFire state (200+ range to avoid conflicts)
-			'idle': 200,
-			'booting': 201, 
-			'preheat': 202,
-			'cooking': 203,
-			'cooldown': 204,
-			'target_reached': 205,
-			'overshoot_alarm': 206,
-			'probe_alarm': 207,
-			'low_pellets': 208,
-			'timer_done': 209,
-			'error_fault': 210,
-			'night_mode': 211
-		},
-		'mode_presets': {
-			# Legacy traditional presets (kept for backward compatibility)
-			'Stop' : 1,
-			'Startup' : 1,
-			'Reignite' : 1, 
-			'Smoke' : 1,
-			'Hold' : 1,
-			'Shutdown' : 1,
-			'Prime' : 1
-		},
-		'event_presets' : {
-			# Legacy event presets (kept for backward compatibility)
-			'Temp_Achieved' : 1,
-			'Recipe_Next' : 1,
-			'Grill_Error' : 1,
-			'Pellet_Level_Low' : 1,
-			'Timer_Expired' : 1
-		},
-		'suggested_config': {
-			'cooking_color': 'blue',  # blue or green
-			'idle_brightness': 20,    # percentage (1-100)
-			'night_mode': False,      # use dim amber instead of normal colors
-			'led_count': 6           # number of LEDs on the strip
-		},
-		'notify_duration' : 120  # number of seconds to keep notifications active
-	}
 
 	return services
 
@@ -621,10 +560,6 @@ def default_control():
 
 def default_notify(settings):
 	notify_data = []
-	''' Get list of Probes '''
-
-	probe_list = get_probe_list(settings)
-
 	''' Build list of probe notification data '''
 
 	for probe in settings['probe_settings']['probe_map']['probe_info']:
@@ -687,14 +622,6 @@ def default_notify(settings):
 	notify_data.append(notify_info)
 
 	return notify_data
-
-def get_probe_list(settings):
-	probe_list = [] 
-	for probe in settings['probe_settings']['probe_map']['probe_info']:
-		if probe['type'] != 'Aux':
-			probe_list.append((probe['label'] , probe['name']))
-
-	return probe_list
 
 def get_notify_targets(notify_data):
 	notify_targets = {}
@@ -886,7 +813,6 @@ def read_control(flush=False):
 	:param flush: True to clean control. False otherwise
 	:return: control
 	"""
-	global cmdsts
 
 	try:
 		if flush:
@@ -916,7 +842,6 @@ def write_control(control, direct_write=False, origin='unknown'):
 	:param control: Control Dictionary
 	:param direct_write:  If set to true, write directly to the control data.  Else, write the control data to a command queue.  Defaults to false.  
 	"""
-	global cmdsts
 
 	if direct_write: 
 		cmdsts.set('control:general', json.dumps(control))
@@ -953,7 +878,6 @@ def execute_control_writes():
 
 	:return status : 'OK', 'ERROR' 
 	"""
-	global cmdsts 
 
 	status = 'OK'
 	while cmdsts.llen('control:write') > 0:
@@ -971,7 +895,6 @@ def read_errors(flush=False):
 	:param flush: True to clear errors. False otherwise
 	:return: errors
 	"""
-	global cmdsts
 
 	try:
 		if flush:
@@ -993,7 +916,6 @@ def write_errors(errors):
 
 	:param errors: Errors
 	"""
-	global cmdsts
 
 	cmdsts.set('errors', json.dumps(errors))
 
@@ -1003,7 +925,6 @@ def read_warnings():
 
 	:return: warnings
 	"""
-	global cmdsts
 
 	try:
 		if not(cmdsts.exists('warnings')):
@@ -1025,7 +946,6 @@ def write_warning(warning):
 
 	:param warnings: Warnings List 
 	"""
-	global cmdsts
 
 	try:
 		cmdsts.rpush('warnings', warning)
@@ -1039,7 +959,6 @@ def read_metrics(all=False):
 
 	:param all: True to read entire list. False for top of list.
 	"""
-	global cmdsts
 
 	if not(cmdsts.exists('metrics:general')):
 		write_metrics(flush=True)
@@ -1065,7 +984,6 @@ def write_metrics(metrics=default_metrics(), flush=False, new_metric=False):
 	:param flush: True to clear metrics. False otherwise
 	:param new_metric:
 	"""
-	global cmdsts
 
 	if(flush or not(cmdsts.exists('metrics:general'))):
 		# Remove all metrics structures in Redis DB
@@ -1086,6 +1004,37 @@ def write_metrics(metrics=default_metrics(), flush=False, new_metric=False):
 	else: 
 		cmdsts.rpop('metrics:general')
 		cmdsts.rpush('metrics:general', json.dumps(metrics))
+
+def _drop_removed_features(settings):
+	'''
+	Orange Pi fork: settings of features this version no longer has (classic
+	dashboards, WLED, InfluxDB, OneSignal for the Android app) are dropped
+	instead of being carried forever.
+	'''
+	shipped = _default_dashboard()['dashboards']
+	dashboards = settings.get('dashboard', {}).get('dashboards', {})
+	for name in list(dashboards):
+		if name not in shipped:
+			dashboards.pop(name)
+	if settings.get('dashboard', {}).get('current') not in dashboards:
+		settings['dashboard']['current'] = 'Modern'
+	for service in ('wled', 'influxdb', 'onesignal'):
+		settings.get('notify_services', {}).pop(service, None)
+	# Raspberry Pi platforms and the removed display drivers
+	modules = read_generic_json('./wizard/wizard_manifest.json').get('modules', {})
+	if modules:
+		if settings.get('platform', {}).get('current') not in modules.get('grillplatform', {}):
+			settings['platform']['current'] = 'pcb_4.x.x_opizero2w'
+		displays = modules.get('display', {})
+		if settings.get('modules', {}).get('display') not in displays:
+			settings['modules']['display'] = 'none'
+		if settings.get('display', {}).get('selected') not in displays:
+			settings['display']['selected'] = 'none'
+		config = settings.get('display', {}).get('config', {})
+		for name in list(config):
+			if name not in displays:
+				config.pop(name)
+	return settings
 
 def read_settings(filename='settings.json', init=False, retry_count=0):
 	"""
@@ -1167,6 +1116,7 @@ def read_settings(filename='settings.json', init=False, retry_count=0):
 		# Overlay the original settings on top of the default settings
 		settings = deep_update(settings_default, settings)
 		update_settings = True
+		settings = _drop_removed_features(settings)
 		settings['history_page']['probe_config'] = default_probe_config(settings)  # Fix issue with probe_configs resetting to defaults
 
 		if update_settings or filename != 'settings.json': # If any of the keys were added, then write back the changes
@@ -1188,20 +1138,6 @@ def write_settings(settings):
 	json_data_string = json.dumps(settings, indent=2, sort_keys=True)
 	with open("settings.json", 'w') as settings_file:
 		settings_file.write(json_data_string)
-
-def read_settings_redis(init=False):
-	global cmdsts
-
-	if init:
-		settings = read_settings()
-		cmdsts.set('settings:general', json.dumps(settings))
-
-	if not cmdsts.exists('settings:general'):
-		settings = {}
-	else:
-		settings = json.loads(cmdsts.get('settings:general'))
-
-	return(settings)
 
 def write_settings_redis(settings):
 	"""
@@ -1251,133 +1187,18 @@ def restore_settings(settings_default):
 		warning = f'Something failed when reading the "settings.json" file.  Restoring settings from the following backup settings file: {backup_settings_file}.'
 		settings = read_settings(filename=backup_settings_file)
 	else: 
-		warning = f'Something failed when reading the "settings.json" file.  Resetting settings to defaults, since no backup settings files were found.'
+		warning = 'Something failed when reading the "settings.json" file.  Resetting settings to defaults, since no backup settings files were found.'
 		settings = settings_default
 	write_warning(warning)
 	write_log(warning)
 	return settings
 
 def upgrade_settings(prev_ver, settings, settings_default):
-	''' Check if upgrading from v1.4.x or earlier '''
-	if prev_ver[0] <=1 and prev_ver[1] <= 4:
-		settings['versions'] = settings_default['versions']
-		settings['globals']['first_time_setup'] = True  # Force configuration for probes
-		settings['startup']['start_to_mode']['primary_setpoint'] = settings['start_to_mode']['grill1_setpoint']
-		settings['start_to_mode'].pop('grill1_setpoint')
-		settings['dashboard'] = settings_default['dashboard']
-		# Move Notification Settings
-		settings['notify_services'] = {}
-		for key in settings_default['notify_services'].keys():
-			settings['notify_services'][key] = settings[key]
-		settings['probe_settings'].pop('probe_options')
-		settings['probe_settings'].pop('probe_sources')
-		settings['probe_settings'].pop('probes_enabled')
-		settings['modules'].pop('adc')
-		# Add ID to probe_profiles
-		for profile in settings['probe_settings']['probe_profiles']:
-			if 'id' not in settings['probe_settings']['probe_profiles'][profile].keys():
-				settings['probe_settings']['probe_profiles'][profile]['id'] = profile
-	if prev_ver[0] <=1 and prev_ver[1] <= 5:
-		# if moving from v1.5 to v1.6, force a first-time setup to drive changes to the probe device setup
-		settings['globals']['first_time_setup'] = True
-		settings['cycle_data'].pop('SmokeCycleTime') # Remove old SmokeCycleTime
-		settings['cycle_data']['SmokeOnCycleTime'] = 15  # Name change for SmokeCycleTime variable 
-		settings['cycle_data']['SmokeOffCycleTime'] = 45  # Added SmokeOffCycleTime variable 
-	''' Check if upgrading from v1.6.x or v1.7.0 build 7 '''
-	if (prev_ver[0] <=1 and prev_ver[1] <= 6) or (prev_ver[0] ==1 and prev_ver[1] == 7 and settings['versions'].get('build', 0) <= 7):
-		settings['dashboard'] = settings_default['dashboard']
-	''' Check if upgrading from v1.7.0 build 45 '''
-	if (prev_ver[0] <=1 and prev_ver[1] <= 6) or (prev_ver[0] ==1 and prev_ver[1] == 7 and settings['versions'].get('build', 0) <= 45):
-		# Move startup defaults to new 'startup' section of settings 
-		settings['startup'] = settings_default['startup']
-		settings['startup']['duration'] = settings['globals'].get('startup_timer', settings_default['startup']['duration'])
-		settings['globals'].pop('startup_timer', None)
-		settings['startup']['startup_exit_temp'] = settings['globals'].get('startup_exit_temp', settings_default['startup']['startup_exit_temp'])
-		settings['globals'].pop('startup_exit_temp', None)
-		settings['startup']['start_to_mode'] = settings.get('start_to_mode', settings_default['startup']['start_to_mode'])
-		settings.pop('start_to_mode', None)
-		settings['startup']['smartstart'] = settings.get('smartstart', settings_default['startup']['smartstart'])
-		settings.pop('smartstart', None)
-		settings['shutdown'] = settings_default['shutdown']
-		settings['shutdown']['shutdown_duration'] = settings['globals'].get('shutdown_timer', settings_default['shutdown']['shutdown_duration'])
-		settings['globals'].pop('shutdown_timer', None)
-		settings['shutdown']['auto_power_off'] = settings['globals'].get('auto_power_off', settings_default['shutdown']['auto_power_off'])
-		settings['globals'].pop('auto_power_off', None)
-	''' Check if upgrading from v1.7.x '''
-	if (prev_ver[0] <=1 and prev_ver[1] <= 7):
-		''' Force running the configuration wizard again '''
-		settings['globals']['first_time_setup'] = True
-		''' Create platform section in settings with defaults '''
-		settings['platform'] = settings_default['platform']
-		''' Move platform global variables to platform section '''
-		if settings['globals'].get('buttonslevel', None) is not None:
-			settings['platform']['buttonslevel'] = settings['globals'].get('buttonslevel', 'HIGH')
-			settings['globals'].pop('buttonslevel')
-		if settings['globals'].get('dc_fan', None) is not None:
-			settings['platform']['dc_fan'] = settings['globals'].get('dc_fan', False)
-			settings['globals'].pop('dc_fan')
-		if settings['globals'].get('real_hw', None) is not None:
-			settings['platform']['real_hw'] = settings['globals'].get('real_hw', True)
-			settings['globals'].pop('real_hw')
-		if settings['globals'].get('standalone', None) is not None:
-			settings['platform']['standalone'] = settings['globals'].get('standalone', True)
-			settings['globals'].pop('standalone')
-		if settings['globals'].get('triggerlevel', None) is not None:
-			settings['platform']['triggerlevel'] = settings['globals'].get('triggerlevel', 'LOW')
-			settings['globals'].pop('triggerlevel')
-		''' Move pin definitions to platform section'''
-		if settings.get('dev_pins', None) is not None:
-			updated_dict = deep_update(settings['platform']['devices'], settings['dev_pins'])
-			settings['platform']['devices'] = updated_dict
-			settings.pop('dev_pins')
-		if settings.get('inpins', None) is not None:
-			updated_dict = deep_update(settings['platform']['inputs'], settings['inpins'])
-			settings['platform']['inputs'] = updated_dict
-			settings.pop('inpins')
-		if settings.get('outpins', None) is not None:
-			updated_dict = deep_update(settings['platform']['outputs'], settings['outpins'])
-			settings['platform']['outputs'] = updated_dict
-			settings.pop('outpins')
-		''' Migrate module settings for the appropriate module support '''
-		settings['platform']['current'] = 'custom'  # Since we do not know what PCB / System is installed on upgrade, set to custom 
-		if settings['modules']['grillplat'] == 'prototype':
-			settings['platform']['system_type'] = 'prototype'
-		else: 
-			settings['platform']['system_type'] = 'raspberry_pi_all'
-			settings['modules']['grillplat'] == 'raspberry_pi_all'
-
-	''' Check if upgrading from v1.9.0 build 32 '''
-	if (prev_ver[0] ==1 and prev_ver[1] == 9 and settings['versions'].get('build', 0) <= 32):
-		for index, device in enumerate(settings['probe_settings']['probe_map']['probe_devices']):
-			if device['module'] == 'bt_meater_alt':
-				settings['probe_settings']['probe_map']['probe_devices'][index]['module'] = 'bt_meater'
-			elif device['module'] == 'bt_meater':
-				settings['probe_settings']['probe_map']['probe_devices'][index]['module'] = 'bt_meater_exp'
-
-	''' Check if upgrading from previous to v1.10 or from v1.10.0 build 0 '''
-	if (prev_ver[0] == 1 and prev_ver[1] == 10 and settings['versions'].get('build', 0) == 0) or \
-		(prev_ver[0] == 1 and prev_ver[1] < 10):
-		''' Setup new Python Exec and UV settings '''
-		if settings['globals'].get('venv', False):
-			''' If using VENV, set the python_exec to the bin/python '''
-			settings['globals']['python_exec'] = 'bin/python'
-			settings['globals']['uv'] = False
-		else:
-			settings['globals']['python_exec'] = 'python'
-			settings['globals']['uv'] = False
-			# TODO: Upgrade to VENV for older configs? 
-
-	''' Check if upgrading from previous to v1.10 or from v1.10.0 build 51 '''
-	if (prev_ver[0] == 1 and prev_ver[1] == 10 and settings['versions'].get('build', 0) <= 51) or \
-		(prev_ver[0] == 1 and prev_ver[1] < 10):
-		''' Update probe map devices to include module_filename '''
-		print('Upgrading probe map devices to include module_filename')
-		for index, device in enumerate(settings['probe_settings']['probe_map']['probe_devices']):
-			if 'module_filename' not in list(device.keys()):
-				print(f'   Updating device: {device["device"]} - {device["module"]}')
-				device['module_filename'] = device['module']
-				settings['probe_settings']['probe_map']['probe_devices'][index] = device
-
+	'''
+	Settings changes between versions.  Orange Pi fork: installs start from
+	1.10.10 build 71, so the upstream steps for 1.4 - 1.10.0 were removed; new
+	fields come from the defaults (deep_update in read_settings).
+	'''
 	''' Import any new probe profiles '''
 	for profile in list(settings_default['probe_settings']['probe_profiles'].keys()):
 		if profile not in list(settings['probe_settings']['probe_profiles'].keys()):
@@ -1408,58 +1229,6 @@ def downgrade_settings(settings, settings_default):
 	write_warning(warning)
 	write_log(warning)
 	return(settings)
-
-def read_connected_users(flush=False):
-	"""
-	Read Connected Users from Redis DB
-
-	:param flush: True to clean connected_users. False otherwise
-	:return: connected_users (List of Client ID's)
-	"""
-	global cmdsts
-
-	try:
-		if flush:
-			cmdsts.delete('users:connected')
-
-		if not(cmdsts.exists('users:connected')):
-			connected_users = []
-		else:
-			# Read list of users
-			connected_users = cmdsts.lrange('users:connected', 0, -1)
-	except:
-		event = 'Unable to reach Redis database.  You may need to reinstall PiFire or enable redis-server.'
-		write_log(event)
-
-	return connected_users
-
-def write_connected_user(client_id):
-	"""
-	Write a Connected User to Redis DB
-
-	:param client_id: Users Client ID from Socket IO/Flask
-	"""
-	global cmdsts
-
-	try:
-		cmdsts.rpush('users:connected', client_id)
-	except:
-		event = 'Unable to reach Redis database.  You may need to reinstall PiFire or enable redis-server.'
-		write_log(event)
-
-def remove_connected_user(client_id):
-	"""
-	Removes a Connected User to Redis DB
-
-	:param client_id: Users Client ID from Socket IO/Flask
-	"""
-	global cmdsts
-
-	try:
-		cmdsts.lrem('users:connected', 0, client_id)
-	except:
-		event = 'Unable to reach Redis database.  You may need to reinstall PiFire or enable redis-server.'
-		write_log(event)
 
 def read_pellet_db(filename='pelletdb.json'):
 	"""
@@ -1511,20 +1280,6 @@ def write_pellet_db(pelletdb):
 	with open("pelletdb.json", 'w') as json_file:
 		json_file.write(json_data_string)
 
-def read_pellets_redis(init=False):
-	global cmdsts
-
-	if init:
-		pelletdb = read_pellet_db()
-		cmdsts.set('pellets:general', json.dumps(pelletdb))
-
-	if not cmdsts.exists('pellets:general'):
-		pelletdb = {}
-	else:
-		pelletdb = json.loads(cmdsts.get('pellets:general'))
-
-	return(pelletdb)
-
 def write_pellets_redis(pelletdb):
 	"""
 	Write Settings to Redis DB
@@ -1567,7 +1322,7 @@ def backup_pellet_db(action='backup'):
 			pelletdb = read_pellet_db(filename=pelletdb_backup_file)
 			write_pellet_db(pelletdb)
 		else: 
-			warning = f'There was an issue with loading the Pellet Database (possibly corruption).  No backups found, setting to defaults.'
+			warning = 'There was an issue with loading the Pellet Database (possibly corruption).  No backups found, setting to defaults.'
 			pelletdb = default_pellets()
 			write_pellet_db(pelletdb)
 		write_warning(warning)
@@ -1651,62 +1406,6 @@ def write_log(event, loggername='events'):
 	eventLogger = create_logger(loggername, filename='./logs/events.log', messageformat='%(asctime)s [%(levelname)s] %(message)s', level=log_level)
 	eventLogger.info(event)
 
-def write_event(settings, event):
-	"""
-	Send event to log and console if debug mode enabled or only to log if
-	string does not begin with *
-
-	:param settings: Settings
-	:param event: String event
-	"""
-	if settings['globals']['debug_mode']:
-		print(event)
-		write_log(event)
-	elif not event.startswith('*'):
-		write_log(event)
-
-def read_events_redis(flush=False):
-	"""
-	Read Events from Redis DB
-
-	:param flush: True to clean events. False otherwise
-	:return: events_list
-	"""
-	global cmdsts
-
-	events_list = []
-
-	try:
-		if flush:
-			cmdsts.delete('logs:events')
-
-		if not(cmdsts.exists('logs:events')):
-			events, num_events = read_events()
-			events_list = []
-			for item in range(min(num_events, 60)):
-				event = {
-					'date': events[item][0],
-					'time': events[item][1],
-					'message': events[item][2].strip('\n')
-				}
-				events_list.append(event)
-				cmdsts.lpush('logs:events', " ".join(events[item]))
-		else:
-			events_list = []
-			for item in cmdsts.lrange('logs:events', 0, -1):
-				item_list = item.split(" ", 2)
-				event = {
-					'date': item_list[0],
-					'time': item_list[1],
-					'message': item_list[2].strip('\n')
-				}
-				events_list.append(event)
-	except:
-		event = 'Unable to reach Redis database.  You may need to reinstall PiFire or enable redis-server.'
-		write_log(event)
-
-	return(events_list)
-
 def read_history(num_items=0, flushhistory=False):
 	"""
 	Read history from Redis DB and populate a list of data
@@ -1715,7 +1414,6 @@ def read_history(num_items=0, flushhistory=False):
 	:param flushhistory: True=flush history & current, False=normal history read
 	:return: List of history dictionaries (each list item is timestamped 'T')
 	"""
-	global cmdsts
 	
 	datalist = []  # Initialize data list
 
@@ -1772,7 +1470,6 @@ def write_history(in_data, maxsizelines=28800, ext_data=False):
 	:param ext_data: Extended data to be written to the databse 
 	"""
 	
-	global cmdsts
 
 	# Create data structure for current temperature data and timestamp
 	datastruct = {}
@@ -1800,7 +1497,6 @@ def write_current(in_data):
 
 	:param in_data: dictionary containing current temperatures
 	"""
-	global cmdsts
 
 	current = {}
 	current['P'] = in_data['probe_history']['primary']
@@ -1818,7 +1514,6 @@ def read_current(zero_out=False):
 	:param zero_out: True to zero out current. False otherwise
 	:return: Current probe temps structure
 	"""
-	global cmdsts
 
 	if zero_out:
 		''' Build Probe Structure '''
@@ -1854,7 +1549,6 @@ def write_tr(tr_data):
 	Write tr values to Redis DB
 
 	"""
-	global cmdsts
 	cmdsts.set('control:tuning', json.dumps(tr_data))
 
 def read_tr():
@@ -1863,7 +1557,6 @@ def read_tr():
 
 	:return: Current probe Tr values structure
 	"""
-	global cmdsts
 	
 	if not cmdsts.exists('control:tuning'):
 		tr_data = {}
@@ -1873,12 +1566,10 @@ def read_tr():
 	return(tr_data)
 
 def write_autotune(data):
-	global cmdsts 
 	# Push data string to the list in the last position
 	cmdsts.rpush('control:autotune', json.dumps(data))
 
 def read_autotune(flush=False, size_only=False):
-	global cmdsts 
 
 	output_data = []
 	# If a flushhistory is requested, then flush the control:history key (and data)
@@ -1937,24 +1628,12 @@ def is_real_hardware(settings=None):
 	"""
 	Check if running on real hardware as opposed to a prototype/test environment.
 
-	:return: True if running on real hardware (i.e. Raspberry Pi), else False. 
+	:return: True if running on real hardware (the Orange Pi), else False. 
 	"""
 	if settings == None:
 		settings = read_settings()
 
 	return True if settings['platform']['real_hw'] else False
-
-def restart_control():
-	"""
-	Restart the Control Script
-	"""
-	os.system("sleep 3 && sudo supervisorctl restart control &")
-
-def restart_webapp():
-	"""
-	Restart the WebApp Script
-	"""
-	os.system("sleep 3 && sudo supervisorctl restart webapp &")
 
 def restart_scripts():
 	"""
@@ -2066,7 +1745,6 @@ def load_wizard_install_info():
 
 	:return: wizard_install_info
 	"""
-	global cmdsts
 	wizard_install_info = json.loads(cmdsts.get('wizard:install'))
 	return(wizard_install_info)
 
@@ -2077,7 +1755,6 @@ def store_wizard_install_info(wizard_install_info):
 	:param wizard_install_info: Wizard Install Info
 	:return:
 	"""
-	global cmdsts
 	cmdsts.set('wizard:install', json.dumps(wizard_install_info))
 
 def get_wizard_install_status():
@@ -2086,7 +1763,6 @@ def get_wizard_install_status():
 
 	:return: Wizard Install (Percent, Status, Output)
 	"""
-	global cmdsts 
 	percent = cmdsts.get('wizard:percent')
 	status = cmdsts.get('wizard:status')
 	output = cmdsts.get('wizard:output')
@@ -2100,7 +1776,6 @@ def set_wizard_install_status(percent, status, output):
 	:param status: Current Status
 	:param output: Output
 	"""
-	global cmdsts 
 	cmdsts.set('wizard:percent', percent)
 	cmdsts.set('wizard:status', status)
 	cmdsts.set('wizard:output', output)
@@ -2140,7 +1815,6 @@ def get_updater_install_status():
 
 	:return: Wizard Updater (Percent, Status, Output)
 	"""
-	global cmdsts
 	percent = cmdsts.get('updater:percent')
 	status = cmdsts.get('updater:status')
 	output = cmdsts.get('updater:output')
@@ -2154,7 +1828,6 @@ def set_updater_install_status(percent, status, output):
 	:param status: Current Status
 	:param output: Output
 	"""
-	global cmdsts
 	cmdsts.set('updater:percent', percent)
 	cmdsts.set('updater:status', status)
 	cmdsts.set('updater:output', output)
@@ -2289,7 +1962,6 @@ def write_status(status):
 
 	:param status: Status Dictionary
 	"""
-	global cmdsts
 
 	cmdsts.set('control:status', json.dumps(status))
 
@@ -2297,7 +1969,6 @@ def read_status(init=False):
 	"""
 	Read Status dictionary from Redis DB
 	"""
-	global cmdsts
 
 	if init:
 		settings = read_settings()
@@ -2763,10 +2434,10 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 							write_control(control, direct_write=direct_write, origin=origin)
 						else:
 							data['result'] = 'ERROR'
-							data['message'] = f'Prime amount should be an integer in grams.'
+							data['message'] = 'Prime amount should be an integer in grams.'
 					else:
 						data['result'] = 'ERROR'
-						data['message'] = f'Prime amount not specified.'
+						data['message'] = 'Prime amount not specified.'
 				except:
 					data['result'] = 'ERROR'
 					data['message'] = f'Set Mode {arglist[1]} with {arglist[2]} caused an exception.'
@@ -2807,10 +2478,10 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 						data['message'] = f'Set PMode out of range(0-9): {arglist[1]}'
 				else:
 					data['result'] = 'ERROR'
-					data['message'] = f'Set PMode invalid value.'
+					data['message'] = 'Set PMode invalid value.'
 			else:
 				data['result'] = 'ERROR'
-				data['message'] = f'Set PMode invalid arguments.'
+				data['message'] = 'Set PMode invalid arguments.'
 		
 		elif arglist[0] == 'splus':
 			'''
@@ -2886,14 +2557,14 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 								control['notify_data'][index]['target'] = float(arglist[3])
 						else:
 							data['result'] = 'ERROR'
-							data['message'] = f'Notify object target value invalid or missing.'
+							data['message'] = 'Notify object target value invalid or missing.'
 					else:
 						data['result'] = 'ERROR'
-						data['message'] = f'Notify object update failed.'
+						data['message'] = 'Notify object update failed.'
 					write_control(control, direct_write=False, origin=origin)
 			else:
 				data['result'] = 'ERROR'
-				data['message'] = f'Notify object label was not specified.'
+				data['message'] = 'Notify object label was not specified.'
 				
 		elif arglist[0] == 'pwm':
 			'''
@@ -2920,10 +2591,10 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 					write_control(control, direct_write=False, origin=origin)
 				else:
 					data['result'] = 'ERROR'
-					data['message'] = f'Duty cycle must be an integer between 0-100.'
+					data['message'] = 'Duty cycle must be an integer between 0-100.'
 			else:
 				data['result'] = 'ERROR'
-				data['message'] = f'Duty cycle must be specified as an integer between 0-100 percent.'
+				data['message'] = 'Duty cycle must be specified as an integer between 0-100 percent.'
 
 		elif arglist[0] == 'tuning_mode':
 			'''
@@ -3010,7 +2681,7 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 				write_control(control, direct_write=direct_write, origin=origin)
 			else:
 				data['result'] = 'ERROR'
-				data['message'] = f'Timer command not recognized.'
+				data['message'] = 'Timer command not recognized.'
 
 		elif arglist[0] == 'manual':
 			'''
@@ -3079,13 +2750,13 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 					control['manual']['pwm'] = int(float(arglist[2]))
 				else:
 					data['result'] = 'ERROR'
-					data['message'] = f'Manual command not recognized or contained an error.'
+					data['message'] = 'Manual command not recognized or contained an error.'
 				if control['manual']['change'] in ['power', 'igniter', 'fan', 'auger', 'pwm']:
 					write_control(control, direct_write=direct_write, origin=origin)
 
 			else:
 				data['result'] = 'ERROR'
-				data['message'] = f'Before changing manual outputs, system must be put into Manual mode.'
+				data['message'] = 'Before changing manual outputs, system must be put into Manual mode.'
 
 		elif arglist[0] == 'recipe':
 			'''
@@ -3192,7 +2863,6 @@ def read_generic_key(key):
 	Read generic data from Redis DB
 	:param key: key name
 	"""
-	global cmdsts
 
 	value = json.loads(cmdsts.get(key))
 
@@ -3204,7 +2874,6 @@ def write_generic_key(key, value):
 	:param key: key name
 	:parma value: value to write
 	"""
-	global cmdsts
 
 	cmdsts.set(key, json.dumps(value))
 

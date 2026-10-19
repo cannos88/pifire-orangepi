@@ -93,22 +93,3 @@ def temp_to_tr(temp, a, b, c, units='F'):
 		Tr = 0
 
 	return int(Tr)
-
-def tr_to_temp(tr, a, b, c, units='F'):
-	try:
-		#Steinhart Hart Equation
-		# 1/T = A + B(ln(R)) + C(ln(R))^3
-		# T = 1/(a + b[ln(ohm)] + c[ln(ohm)]^3)
-		ln_ohm = math.log(tr) # ln(ohms)
-		t1 = (b * ln_ohm) # b[ln(ohm)]
-		t2 = c * math.pow(ln_ohm, 3) # c[ln(ohm)]^3
-		temp_k = 1/(a + t1 + t2) # calculate temperature in Kelvin
-		temp_c = temp_k - 273.15 # Kelvin to Celsius
-		temp_f = temp_c * (9 / 5) + 32 # Celsius to Fahrenheit
-	except:
-		temp_c = 0.0
-		temp_f = 0
-	if units == 'F': 
-		return int(temp_f) # Return Calculated Temperature and Thermistor Value in Ohms
-	else:
-		return temp_c

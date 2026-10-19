@@ -16,7 +16,7 @@
 	==============================
 """
 
-from gpiozero.threads import GPIOThread
+from grillplat.opi_gpio import StoppableThread as GPIOThread  # fork: no gpiozero
 from common import is_float, create_logger, get_os_info
 
 """
@@ -165,7 +165,6 @@ class GrillPlatform:
 			'check_cpu_temp',
 			'supported_commands',
 			'check_alive',
-			'scan_bluetooth',
 			'os_info',
 			'network_info',
 			'hardware_info'
@@ -205,7 +204,7 @@ class GrillPlatform:
 		return data
 	
 	def check_wifi_quality(self, arglist):
-		"""Checks the Wi-Fi signal quality on a Raspberry Pi and returns the value (or None if not connected)."""
+		"""Checks the Wi-Fi signal quality and returns the value (or None if not connected)."""
 		# Return None if not connected or if there was an error
 
 		data = {
@@ -248,49 +247,6 @@ class GrillPlatform:
 		}
 		return data
 
-	def scan_bluetooth(self, arglist):
-		'''
-		 Scan for bluetooth device addresses using bleak (modern BlueZ D-Bus API).
-		 bleak cooperates with bluetoothd rather than fighting it over raw HCI access,
-		 making it compatible with BlueZ 5.56+ unlike the unmaintained bluepy library.
-		'''
-		import asyncio
-		try:
-			from bleak import BleakScanner
-		except ImportError:
-			return {
-				'result': 'ERROR',
-				'message': 'bleak is not installed. Run: pip install bleak',
-				'data': {'bt_devices': []}
-			}
-
-		bt_devices = []
-		result = 'OK'
-		message = 'Bluetooth scan completed successfully.'
-
-		async def _scan():
-			discovered = await BleakScanner.discover(timeout=5.0)
-			for dev in discovered:
-				name = dev.name or 'Unknown'
-				bt_devices.append({'name': name, 'hw_id': dev.address.lower(), 'info': ''})
-				self.logger.debug(f'scan_bluetooth: Found device {name} ({dev.address})')
-
-		try:
-			asyncio.run(_scan())
-		except Exception as e:
-			result = 'ERROR'
-			message = f'Bluetooth scan error: {e}'
-			self.logger.error(f'scan_bluetooth: Error during scan - {e}')
-
-		data = {
-			'result' : result,
-			'message' : message,
-			'data' : {
-				'bt_devices' : bt_devices
-			}
-		}
-		return data
-	
 	def os_info(self, arglist):
 		"""
 		Retrieve OS information such as version and architecture.

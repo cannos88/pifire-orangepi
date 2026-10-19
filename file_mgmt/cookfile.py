@@ -17,7 +17,7 @@ import json
 import zipfile 
 import pathlib
 
-from common import read_settings, read_history, generate_uuid, read_metrics, write_metrics, process_metrics, semantic_ver_to_list, epoch_to_time, unpack_history, default_probe_config, create_logger
+from common import read_settings, read_history, generate_uuid, read_metrics, write_metrics, process_metrics, semantic_ver_to_list, unpack_history, default_probe_config, create_logger
 from file_mgmt.common import read_json_file_data, update_json_file_data
 
 HISTORY_FOLDER = './history/'  # Path to historical cook files
@@ -64,7 +64,6 @@ def create_cookfile():
 	The metrics and cook data are purged from memory, after stop mode is initiated.  
 	'''
 	#global cmdsts
-	global HISTORY_FOLDER
 
 	eventLogger = create_logger('events', filename='./logs/events.log', messageformat='%(asctime)s [%(levelname)s] %(message)s')
 

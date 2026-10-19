@@ -3,7 +3,6 @@ Recipes in the other unit: the bundled recipes are in °F, the grill in °C.
 Upstream convert_recipe_units() stopped with KeyError('settemps').
 '''
 
-import json
 import os
 import sys
 

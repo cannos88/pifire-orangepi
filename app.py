@@ -21,7 +21,6 @@ Description:
 
 from flask import Flask, render_template, redirect
 from flask_mobility import Mobility
-from flask_socketio import SocketIO
 from flask_qrcode import QRcode
 from werkzeug.exceptions import InternalServerError
 from common.common import read_settings, is_real_hardware, create_logger
@@ -36,7 +35,6 @@ from config import ProductionConfig  # ProductionConfig or DevelopmentConfig
 from common.server_status import set_server_status
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # gunicorn gthread worker (fork: no eventlet)
 QRcode(app)
 Mobility(app)
 
@@ -116,19 +114,6 @@ def index():
 
 '''
 ==============================================================================
- Register Mobile Blueprint
-==============================================================================
-'''
-# Initialize Flask-SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # gunicorn gthread worker (fork: no eventlet)
-
-# Register mobile blueprint and provide it with socketio instance
-from blueprints.mobile import mobile_bp, socket_io
-mobile_bp.socketio = socketio
-app.register_blueprint(mobile_bp, url_prefix='/mobile')
-
-'''
-==============================================================================
  Main Program Start
 ==============================================================================
 '''
@@ -151,8 +136,6 @@ with app.app_context():
     set_server_status('available')
 
 if __name__ == '__main__':
-	if is_real_hardware():
-		socketio.run(app, host='0.0.0.0')
-	else:
-		socketio.run(app, host='0.0.0.0', debug=True)
+	# development only: on the grill gunicorn serves the app behind nginx
+	app.run(host='127.0.0.1', debug=not is_real_hardware())
 

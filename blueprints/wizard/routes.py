@@ -1,7 +1,6 @@
 import os
 from flask import render_template, request, jsonify, redirect, render_template_string
 from common.common import read_settings, read_control, read_wizard, get_wizard_install_status, set_wizard_install_status, store_wizard_install_info, write_settings, is_real_hardware
-from common.app import get_supported_cmds, process_command, get_system_command_output
 
 from . import wizard_bp
 from .wizard import *
@@ -55,34 +54,6 @@ def wizard_page(action=None):
                 return render_template_string(render_string, moduleData=moduleData, moduleSection=section, moduleSettings=moduleSettings)
             else:
                 return '<strong color="red">No Data</strong>'
-
-        if action=='bt_scan':
-            itemID=r['itemID']
-            bt_data = []
-            error = None
-
-            try: 
-                supported_cmds = get_supported_cmds()
-
-                if 'scan_bluetooth' in supported_cmds:
-                    process_command(action='sys', arglist=['scan_bluetooth'], origin='admin')  # Request supported commands 
-                    data = get_system_command_output(requested='scan_bluetooth', timeout=6)
-                    #print('[DEBUG] BT Scan Data:', data)
-                    if data['result'] != 'OK':
-                        error = data['message']
-                    else:
-                        bt_data = parse_bt_device_info(data['data']['bt_devices'])
-                        if bt_data == []:
-                            error = 'No bluetooth devices found.'
-                else:
-                    error = 'No support for bluetooth scan command.'
-
-            except Exception as e: 
-                error = f'Something bad happened: {e}'
-                #print(f'[DEBUG] {error}')
-
-            render_string = "{% from 'probeconfig/_macro_probes_config.html' import render_bt_scan_table %}{{ render_bt_scan_table(itemID, bt_data, error) }}"
-            return render_template_string(render_string, itemID=itemID, bt_data=bt_data, error=error)
 
     ''' Create Temporary Probe Device/Port Structure for Setup, Use Existing unless First Time Setup '''
     if settings['globals']['first_time_setup']: 

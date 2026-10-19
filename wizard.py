@@ -194,7 +194,7 @@ def run_wizard(settings, WizardData, WizardInstallInfo):
 
 	''' Set the grillplatform module per the system_type '''
 	settings['modules']['grillplat'] = 'prototype'
-	if settings['platform']['system_type'] in ('raspberry_pi_all', 'orangepi_zero2w'):
+	if settings['platform']['system_type'] == 'orangepi_zero2w':
 		settings['modules']['grillplat'] = settings['platform']['system_type']
 
 	# Commit Settings to JSON
@@ -314,7 +314,7 @@ def run_wizard(settings, WizardData, WizardInstallInfo):
 
 	pip_list = subprocess.run(command, capture_output=True, text=True)
 	if pip_list.returncode == 0:
-		print(f'PIP List Command Success.')
+		print('PIP List Command Success.')
 
 	# Run system commands dependencies
 	status = 'Installing General Dependencies...'
@@ -341,7 +341,7 @@ def run_wizard(settings, WizardData, WizardInstallInfo):
 			time.sleep(2)
 			
 		percent += increment
-		output = f' - Completed General Dependency Item'
+		output = ' - Completed General Dependency Item'
 		logger.info(output)
 		set_updater_install_status(percent, status, output)
 

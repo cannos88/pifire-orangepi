@@ -2,7 +2,7 @@
  Imported Libraries
 '''
 import qrcode 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 from display.flexrect import Rect
 '''
 The following is a map of the FlexObject types to their respective classes.
@@ -609,7 +609,6 @@ class StatusIcon(FlexObject):
 
         elif type == 'SmokePlus':
             char_id = '\uf0c2'  # Font Awesome Icon for Cloud (Smoke)
-            text = '\uf067'  # Font Awesome Icon for PLUS
 
         elif type == 'Notify':
             char_id = '\uf0f3'  # Font Awesome Bell Icon
@@ -740,7 +739,6 @@ class MenuGeneric(FlexObject):
             button_height = 50
             button_padding = 10
             button_width = size[0] // 2 - menu_padding - (button_padding * 2)
-            column = 0
             button_area_position = (menu_padding + button_padding, 80)
             button_area_size = (size[0] - (menu_padding * 2) - (button_padding * 2), size[1] - button_area_position[1] - menu_padding - button_padding)
             row_height = 60

@@ -22,9 +22,8 @@ import multiprocessing
 import pygame
 from pygame import image as PyImage
 
-from PIL import Image, ImageFilter
+from PIL import ImageFilter
 from display.base_flex import DisplayBase
-from display.flexobject import FlexObject
 
 '''
 Dummy backlight class for prototyping 

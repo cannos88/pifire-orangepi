@@ -1,71 +1,17 @@
 #!/usr/bin/env bash
 
-# Automatic Installation Script
-# Many thanks to the PiVPN project (pivpn.io) for much of the inspiration for this script
-#
-# Install with this command (from your Pi):
-#
-# curl https://raw.githubusercontent.com/nebhead/pifire/main/auto-install/install.sh | bash
-#
-# NOTE: Pre-Requisites to run Raspi-Config first.  See README.md.
-# 
-# Usage: 
-# ./install.sh [-dev]
-# -dev: Use this option to run the installation script from the development branch of PiFire instead of the main branch.
-#        This is useful for testing new features or bug fixes that are not yet in the main branch.
-#        If this option is not used, the main branch will be installed by default.
-# -devrepo: Used to pull the development branch repository instead of the main branch.
-#          Uses the current installation script running with the development branch of the repository.
-#          This is useful for testing new features or bug fixes that are not yet in the main branch.
-#          If this option is not used, the main branch will be installed by default.
-#          Note: This option is ignored if -dev is also used.
-#          Example usage: curl https://raw.githubusercontent.com/nebhead/pifire/development/auto-install/install.sh | bash -s -- -devrepo
-# -venv: Use this option to force vanilla venv install
-# -uv:   Use this option to force the use of UV 
-#
-# Environment variables (optional):
-# PIFIRE_REPO:   Git URL to clone instead of https://github.com/nebhead/pifire
-#                (e.g. a fork, or git@github.com:user/repo.git with a deploy key for a private repo)
-# PIFIRE_BRANCH: Branch to clone (overrides -devrepo)
+# PiFire installer for the Orange Pi Zero 2W (Orange Pi fork).
+# Run by auto-install/orangepi/setup.sh (step 8), which prepares the board first and passes:
+#   PIFIRE_REPO    Git URL to clone (this fork; git@ URL with the read-only deploy key)
+#   PIFIRE_BRANCH  branch to clone (orangepi-dev, later orangepi-stable)
+# Based on the PiFire installer (many thanks to the PiVPN project for the original inspiration).
 
-# Install script version variable for logging
-INSTALL_SCRIPT_VERSION="1.10.x"
-DEV_INSTALLER="false"
-for arg in "$@"; do
-  if [[ "$arg" == "-dev" ]]; then
-    DEV_INSTALLER="true"
-  fi
-done
-
-DEV_REPO="false"
-for arg in "$@"; do
-  if [[ "$arg" == "-devrepo" ]]; then
-    DEV_REPO="true"
-  fi
-done
+INSTALL_SCRIPT_VERSION="orangepi"
+PIFIRE_REPO="${PIFIRE_REPO:-git@github.com:cannos88/pifire-orangepi.git}"
+PIFIRE_BRANCH="${PIFIRE_BRANCH:-orangepi-dev}"
 
 # Create logs directory if it doesn't exist
 mkdir -p ~/logs
-
-# Check if -dev flag is used and run install from development branch and exit this script
-if [[ $DEV_INSTALLER == "true" ]]; then
-    echo " + Running installation script from development branch..." | tee -a ~/logs/pifire_install.log
-    # Pass through all arguments except -dev to the development branch installer
-    # Build a new argument list excluding -dev
-    passthrough_args=()
-    for arg in "$@"; do
-        if [[ "$arg" != "-dev" ]]; then
-            passthrough_args+=("$arg")
-        fi
-    done
-    echo " + Passing through arguments to development branch installer: ${passthrough_args[*]}" | tee -a ~/logs/pifire_install.log
-    curl -SL https://raw.githubusercontent.com/nebhead/pifire/development/auto-install/install.sh | bash -s -- -devrepo "${passthrough_args[@]}"
-    exit 0
-elif [[ $DEV_REPO == "true" ]]; then
-    echo " + Running installation script from development branch based on version $INSTALL_SCRIPT_VERSION..." | tee -a ~/logs/pifire_install.log
-else
-    echo " + Running installation script from main branch based on version $INSTALL_SCRIPT_VERSION..." | tee -a ~/logs/pifire_install.log
-fi
 
 # Start logging
 echo "*************************************************************************" | tee ~/logs/pifire_install.log
@@ -88,7 +34,7 @@ else
         exit 1
     fi
     # Authenticate once upfront and keep the sudo session alive for the duration of the install.
-    # This is needed on systems where sudo requires a password (e.g. Raspberry Pi OS Trixie+).
+    # This is needed on systems where sudo requires a password.
     echo " *************************************************************************" | tee -a ~/logs/pifire_install.log
     echo " + Please enter your sudo password to proceed with installation." | tee -a ~/logs/pifire_install.log
     echo " *************************************************************************" | tee -a ~/logs/pifire_install.log
@@ -98,29 +44,13 @@ else
     SUDO_KEEPALIVE_PID=$!
 fi
 
-# Detect OS architecture
+# 64-bit ARM only (Armbian on the Orange Pi Zero 2W)
 ARCH=$(uname -m)
-echo " + Detecting system architecture: $ARCH" | tee -a ~/logs/pifire_install.log
-
-case $ARCH in
-    aarch64)
-        echo " + 64-bit ARM OS detected (Raspberry Pi running 64-bit OS)" | tee -a ~/logs/pifire_install.log
-        OS_BITS="64"
-        ;;
-    armv7l|armv6l)
-        echo " + 32-bit ARM OS detected (Raspberry Pi running 32-bit OS)" | tee -a ~/logs/pifire_install.log
-        OS_BITS="32"
-        ;;
-    *)
-        echo " !! Warning: Non-standard Raspberry Pi architecture detected: $ARCH" | tee -a ~/logs/pifire_install.log
-        echo " !! This script is designed for Raspberry Pi systems" | tee -a ~/logs/pifire_install.log
-        if ! whiptail --backtitle "Architecture Warning" --title "Non-standard Architecture" --yesno "This script is designed for Raspberry Pi systems but detected architecture: $ARCH\n\nDo you want to continue anyway?" 12 60; then
-            echo " !! Installation cancelled by user" | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-        ;;
-esac
-echo " + System architecture set to: $OS_BITS-bit" | tee -a ~/logs/pifire_install.log
+echo " + System architecture: $ARCH" | tee -a ~/logs/pifire_install.log
+if [[ "$ARCH" != "aarch64" ]]; then
+    echo " !! This installer is for the Orange Pi Zero 2W with a 64-bit OS (aarch64). Exiting." | tee -a ~/logs/pifire_install.log
+    exit 1
+fi
 
 # Determine OS version number
 if [ -f /etc/os-release ]; then
@@ -132,17 +62,6 @@ else
     echo " !! Unable to determine OS version. /etc/os-release not found." | tee -a ~/logs/pifire_install.log
     exit 1
 fi  
-
-if [[ " $@ " =~ " -venv " ]]; then
-    echo " + Vanilla venv install selected" | tee -a ~/logs/pifire_install.log
-    VENV_TYPE="vanilla"
-elif [[ " $@ " =~ " -uv " ]]; then
-    echo " + UV install selected" | tee -a ~/logs/pifire_install.log
-    VENV_TYPE="uv"
-else
-    VENV_TYPE="auto"
-    echo " + Auto venv type selected" | tee -a ~/logs/pifire_install.log
-fi
 
 sleep 2
 # Find the rows and columns. Will default to 80x24 if it can not be detected.
@@ -158,7 +77,7 @@ r=$(( r < 20 ? 20 : r ))
 c=$(( c < 70 ? 70 : c ))
 
 # Display the welcome dialog
-whiptail --msgbox --backtitle "Welcome" --title "PiFire Automated Installer" "This installer will transform your Single Board Computer into a connected Smoker Controller.  NOTE: This installer is intended to be run on a fresh install of Raspberry Pi OS Lite 32/64-Bit Bullseye or later." ${r} ${c}
+whiptail --msgbox --backtitle "Welcome" --title "PiFire Automated Installer" "This installer turns the Orange Pi Zero 2W into the PiFire controller of the grill. Run it from auto-install/orangepi/setup.sh on a fresh Armbian (Debian 12 or 13)." ${r} ${c}
 
 # Supervisor WebUI Settings
 SVISOR=$(whiptail --title "Would you like to enable the supervisor WebUI?" --radiolist "This allows you to check the status of the supervised processes via a web browser, and also allows those processes to be restarted directly from this interface. (Recommended)" 20 78 2 "ENABLE_SVISOR" "Enable the WebUI" ON "DISABLE_SVISOR" "Disable the WebUI" OFF 3>&1 1>&2 2>&3)
@@ -200,28 +119,11 @@ echo "**      Installing Dependencies... (This could take several minutes)   **"
 echo "**                                                                     **" | tee -a ~/logs/pifire_install.log
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
 # Install dependencies, exit if failed
-$SUDO apt install python3-dev python3-pip python3-venv python3-scipy nginx git supervisor ttf-mscorefonts-installer redis-server gfortran libopenblas-dev liblapack-dev libopenjp2-7 libglib2.0-dev bluetooth bluez -y 2>&1 | tee -a ~/logs/pifire_install.log
+$SUDO apt install python3-dev python3-pip python3-venv python3-scipy nginx git supervisor ttf-mscorefonts-installer redis-server gfortran libopenblas-dev liblapack-dev libopenjp2-7 -y 2>&1 | tee -a ~/logs/pifire_install.log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo " !! Failed to install dependencies. Installation cannot continue." | tee -a ~/logs/pifire_install.log
     exit 1
 fi
-# If OS_Version is 11 or 12, install libatlas-base-dev
-if [[ "$OS_VERSION" == "11" || "$OS_VERSION" == "12" ]]; then
-    echo " + OS Version $OS_VERSION detected, installing libatlas-base-dev" | tee -a ~/logs/pifire_install.log
-    $SUDO apt install libatlas-base-dev -y 2>&1 | tee -a ~/logs/pifire_install.log
-else
-    echo " + Skipping libatlas-base-dev installation for OS Version $OS_VERSION" | tee -a ~/logs/pifire_install.log
-fi
-# If Raspberry Pi 5, install python3-rpi-lgpio
-if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
-    echo " + Raspberry Pi 5 detected, installing python3-rpi-lgpio" | tee -a ~/logs/pifire_install.log
-    $SUDO apt install python3-rpi-lgpio -y
-fi
-
-# Unblock Bluetooth in case it is blocked
-echo " + Unblocking Bluetooth (if blocked)" | tee -a ~/logs/pifire_install.log
-$SUDO rfkill unblock bluetooth | tee -a ~/logs/pifire_install.log
-
 # Grab project files
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
 echo "**                                                                     **" | tee -a ~/logs/pifire_install.log
@@ -230,25 +132,11 @@ echo "**                                                                     **"
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
 cd /usr/local/bin
 
-# Clone source: a fork or another branch can be selected with PIFIRE_REPO / PIFIRE_BRANCH
-if [[ -n "$PIFIRE_REPO" || -n "$PIFIRE_BRANCH" ]]; then
-    CLONE_REPO="${PIFIRE_REPO:-https://github.com/nebhead/pifire}"
-    CLONE_BRANCH="${PIFIRE_BRANCH:-main}"
-    echo " + Cloning $CLONE_REPO (branch $CLONE_BRANCH)..." | tee -a ~/logs/pifire_install.log
-    $SUDO git clone --depth 1 --branch "$CLONE_BRANCH" "$CLONE_REPO" pifire 2>&1 | tee -a ~/logs/pifire_install.log
-    if [[ ! -f pifire/app.py ]]; then
-        echo " !! Failed to clone $CLONE_REPO. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-        exit 1
-    fi
-# Check if -devrepo option is used
-elif [[ $DEV_REPO == "true" ]]; then
-    echo " + Cloning development branch..." | tee -a ~/logs/pifire_install.log
-    # Replace the below command to fetch development branch
-    $SUDO git clone --depth 1 --branch development https://github.com/nebhead/pifire 2>&1 | tee -a ~/logs/pifire_install.log
-else
-    echo " + Cloning main branch..." | tee -a ~/logs/pifire_install.log 2>&1 | tee -a ~/logs/pifire_install.log
-    # Use a shallow clone to reduce download size
-    $SUDO git clone --depth 1 https://github.com/nebhead/pifire
+echo " + Cloning $PIFIRE_REPO (branch $PIFIRE_BRANCH)..." | tee -a ~/logs/pifire_install.log
+$SUDO git clone --depth 1 --branch "$PIFIRE_BRANCH" "$PIFIRE_REPO" pifire 2>&1 | tee -a ~/logs/pifire_install.log
+if [[ ! -f pifire/app.py ]]; then
+    echo " !! Failed to clone $PIFIRE_REPO. Installation cannot continue." | tee -a ~/logs/pifire_install.log
+    exit 1
 fi
 
 # Setup Python VENV & Install Python dependencies
@@ -270,8 +158,7 @@ $SUDO chown -R $USER:pifire pifire
 $SUDO chmod -R 777 /usr/local/bin
 
 # Install sudoers drop-in so the pifire group can run required system commands
-# without a password prompt (needed on Raspberry Pi OS Trixie+ which removed
-# the default passwordless sudo grant for the 'pi' user).
+# without a password prompt.
 echo " + Installing sudoers rules for pifire group" | tee -a ~/logs/pifire_install.log
 $SUDO tee /etc/sudoers.d/pifire > /dev/null <<'EOF'
 # Allow members of the pifire group to run system commands required by PiFire
@@ -284,25 +171,14 @@ $SUDO tee /etc/sudoers.d/pifire > /dev/null <<'EOF'
 %pifire ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl, /bin/supervisorctl
 %pifire ALL=(ALL) NOPASSWD: /bin/systemctl restart supervisor, /usr/bin/systemctl restart supervisor
 
-# Hardware utilities (grillplat/raspberry_pi_all.py)
-%pifire ALL=(ALL) NOPASSWD: /usr/bin/vcgencmd
-
 # Package management (updater.py, wizard.py apt installs)
 %pifire ALL=(ALL) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get
-
-# Bluetooth (updater manifest rfkill command)
-%pifire ALL=(ALL) NOPASSWD: /usr/bin/rfkill, /usr/sbin/rfkill
 
 # File operations (updater manifest cp of supervisor conf files)
 %pifire ALL=(ALL) NOPASSWD: /bin/cp, /usr/bin/cp
 
-# Script execution (updater/wizard manifests run bash scripts for
-# udev rules, bluepy-helper setcap, ds18b20 1-wire setup, etc.)
+# Script execution (updater manifest runs auto-install/orangepi/ota-system.sh)
 %pifire ALL=(ALL) NOPASSWD: /bin/bash, /usr/bin/bash
-
-# board-config.py (wizard manifest runs this via the venv python with sudo)
-%pifire ALL=(ALL) NOPASSWD: /usr/local/bin/pifire/.venv/bin/python
-%pifire ALL=(ALL) NOPASSWD: /usr/local/bin/pifire/bin/python
 EOF
 $SUDO chmod 0440 /etc/sudoers.d/pifire
 # Validate the file is syntactically correct before proceeding
@@ -319,162 +195,37 @@ CONSTRAINTS=/usr/local/bin/pifire/auto-install/constraints.txt
 CONSTRAINT_ARGS=()
 [ -f "$CONSTRAINTS" ] && CONSTRAINT_ARGS=(-c "$CONSTRAINTS")
 
-# Install UV (Universal Virtualenv) for Python 3.11+
-# If using 64-bit OS OR -uv option is set
-if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
-    echo " + Setting up UV configuration (64-Bit)" | tee -a ~/logs/pifire_install.log
-    # Add any 64-bit specific configurations here if needed
-    echo " + Installing UV" | tee -a ~/logs/pifire_install.log
-    if ! /bin/curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" /bin/sh; then
-        echo " ! Failed to download or install UV. Exiting." | tee -a ~/logs/pifire_install.log
-        exit 1
-    fi
-
-    echo " + Setting up VENV" | tee -a ~/logs/pifire_install.log
-    # Setup VENV
-    cd /usr/local/bin/pifire
-    uv venv --system-site-packages
-
-    # Activate VENV
-    source .venv/bin/activate
-
-    # Installing module dependencies
-    echo " - Installing module dependencies... " | tee -a ~/logs/pifire_install.log
-
-    # eventlet and influxdb_client: no longer installed here (fork: web app on gunicorn
-    # threads, influxdb_client pinned in requirements.txt)
-
-    # If Raspberry Pi 5, skip rpi.gpio installation as it is not supported
-    if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-        echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
-    elif grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
-        echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
-    else
-        echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log
-        if ! uv pip install "${CONSTRAINT_ARGS[@]}" rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
-            echo " !! Failed to install rpi.gpio. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-    fi
-
-    # scikit-learn is no longer needed (fork: the ML controller fits its model with numpy)
-
-    echo " + Installing modules from requirements.txt one at a time... " | tee -a ~/logs/pifire_install.log
-    while IFS= read -r req || [ -n "$req" ]; do
-        # Strip inline comments and trim whitespace
-        req="${req%%#*}"
-        req="$(echo "$req" | xargs)"
-        # Skip empty lines
-        [ -z "$req" ] && continue
-        # Skip requirement file/options directives
-        case "$req" in
-            -r*|--requirement*|--find-links*|-f*|--index-url*|--extra-index-url*|--trusted-host*|--no-binary*|--only-binary*|--*)
-                echo " - Skipping requirement option: $req" | tee -a ~/logs/pifire_install.log
-                continue
-                ;;
-        esac
-        echo " - Installing $req ..." | tee -a ~/logs/pifire_install.log
-        uv pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a ~/logs/pifire_install.log
-        status=${PIPESTATUS[0]}
-        if [ $status -ne 0 ]; then
-            echo " !! Failed to install $req. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-    done < /usr/local/bin/pifire/auto-install/requirements.txt
-    echo " + requirements.txt installation complete." | tee -a ~/logs/pifire_install.log
-    
-    # Find all bluepy-helper executables in various possible locations
-        BLUEPY_HELPERS=$(find /usr/local/bin/pifire/.venv/lib/ -path "*/bluepy/bluepy-helper" 2>/dev/null)
-
-    if [ -z "$BLUEPY_HELPERS" ]; then
-        echo " ! No bluepy-helper found in the standard Python library locations" | tee -a ~/logs/pifire_install.log
-    else
-        # Apply capabilities to each found bluepy-helper
-        for helper in $BLUEPY_HELPERS; do
-            echo " + Setting capabilities for $helper" | tee -a ~/logs/pifire_install.log
-            $SUDO setcap "cap_net_raw,cap_net_admin+eip" "$helper"
-            
-            # Verify the capabilities were set
-            getcap "$helper"
-        done
-        echo " + All bluepy-helper executables have been configured" | tee -a ~/logs/pifire_install.log
-    fi
-else
-    # Add any 32-bit specific configurations here if needed
-    echo " + Setting up Vanilla VENV" | tee -a ~/logs/pifire_install.log
-    # Setup VENV
-    cd /usr/local/bin
-    /bin/python -m venv --system-site-packages pifire
-    cd /usr/local/bin/pifire
-    source bin/activate
-    if ! /bin/python -c "import sys; assert sys.version_info[:2] >= (3,11)" > /dev/null 2>&1; then
-        echo " !! Python 3.11 or newer is required (Debian 12 or 13)." | tee -a ~/logs/pifire_install.log
-        exit 1
-    fi
-    if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-        echo " + Not a Raspberry Pi, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
-    elif grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
-        echo " + Raspberry Pi 5 detected, skipping install of rpi.gpio" | tee -a ~/logs/pifire_install.log
-    else
-        echo " + Installing rpi.gpio==0.7.1" | tee -a ~/logs/pifire_install.log
-        if ! python -m pip install "${CONSTRAINT_ARGS[@]}" rpi.gpio==0.7.1 2>&1 | tee -a ~/logs/pifire_install.log; then
-            echo " !! Failed to install rpi.gpio. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-    fi
-    # Installing module dependencies from requirements.txt one at a time
-    echo " + Installing modules from requirements.txt one at a time... " | tee -a ~/logs/pifire_install.log
-    while IFS= read -r req || [ -n "$req" ]; do
-        # Strip inline comments and trim whitespace
-        req="${req%%#*}"
-        req="$(echo "$req" | xargs)"
-        # Skip empty lines
-        [ -z "$req" ] && continue
-        # Skip requirement file/options directives
-        case "$req" in
-            -r*|--requirement*|--find-links*|-f*|--index-url*|--extra-index-url*|--trusted-host*|--no-binary*|--only-binary*|--*)
-                echo " - Skipping requirement option: $req" | tee -a ~/logs/pifire_install.log
-                continue
-                ;;
-        esac
-        echo " - Installing $req ..." | tee -a ~/logs/pifire_install.log
-        python -m pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a ~/logs/pifire_install.log
-        status=${PIPESTATUS[0]}
-        if [ $status -ne 0 ]; then
-            echo " !! Failed to install $req. Installation cannot continue." | tee -a ~/logs/pifire_install.log
-            exit 1
-        fi
-    done < /usr/local/bin/pifire/auto-install/requirements.txt
-    echo " + requirements.txt installation complete." | tee -a ~/logs/pifire_install.log
-    # Find all bluepy-helper executables in various possible locations
-    BLUEPY_HELPERS=$(find /usr/local/bin/pifire/lib/ -path "*/bluepy/bluepy-helper" 2>/dev/null)
-
-    if [ -z "$BLUEPY_HELPERS" ]; then
-        echo " ! No bluepy-helper found in the standard Python library locations" | tee -a ~/logs/pifire_install.log
-    else
-        # Apply capabilities to each found bluepy-helper
-        for helper in $BLUEPY_HELPERS; do
-            echo " + Setting capabilities for $helper" | tee -a ~/logs/pifire_install.log
-            $SUDO setcap "cap_net_raw,cap_net_admin+eip" "$helper"
-            
-            # Verify the capabilities were set
-            getcap "$helper"
-        done
-        echo " + All bluepy-helper executables have been configured" | tee -a ~/logs/pifire_install.log
-    fi
-
-    # Get PIP List into JSON file
-    echo " - Setting Legacy VENV flag in settings.json" | tee -a ~/logs/pifire_install.log
-    python updater.py --legacyvenv 2>&1 | tee -a ~/logs/pifire_install.log
+# Python environment: uv venv with the system packages (numpy/scipy from Debian)
+echo " + Installing UV" | tee -a ~/logs/pifire_install.log
+if ! /bin/curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" /bin/sh; then
+    echo " ! Failed to download or install UV. Exiting." | tee -a ~/logs/pifire_install.log
+    exit 1
 fi
+
+echo " + Setting up VENV" | tee -a ~/logs/pifire_install.log
+cd /usr/local/bin/pifire
+uv venv --system-site-packages
+source .venv/bin/activate
+
+echo " + Installing modules from requirements.txt one at a time... " | tee -a ~/logs/pifire_install.log
+while IFS= read -r req || [ -n "$req" ]; do
+    # Strip inline comments and trim whitespace
+    req="${req%%#*}"
+    req="$(echo "$req" | xargs)"
+    [ -z "$req" ] && continue
+    echo " - Installing $req ..." | tee -a ~/logs/pifire_install.log
+    uv pip install "${CONSTRAINT_ARGS[@]}" "$req" 2>&1 | tee -a ~/logs/pifire_install.log
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        echo " !! Failed to install $req. Installation cannot continue." | tee -a ~/logs/pifire_install.log
+        exit 1
+    fi
+done < /usr/local/bin/pifire/auto-install/requirements.txt
+echo " + requirements.txt installation complete." | tee -a ~/logs/pifire_install.log
 
 # Get PIP List into JSON file
 echo " - Getting PIP List into JSON file" | tee -a ~/logs/pifire_install.log
 python updater.py --piplist 2>&1 | tee -a ~/logs/pifire_install.log
 
-# Get OS Information into JSON file
-echo " - Getting OS Information into JSON file" | tee -a ~/logs/pifire_install.log
-python board-config.py -ov 2>&1 | tee -a ~/logs/pifire_install.log
 
 ### Setup nginx to proxy to gunicorn
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
@@ -516,11 +267,7 @@ echo "**                                                                     **"
 echo "*************************************************************************" | tee -a ~/logs/pifire_install.log
 
 # Copy configuration files (control.conf, webapp.conf) to supervisor config directory
-if [ "$OS_BITS" = "64" ] && [ ! "$VENV_TYPE" = "vanilla" ]; then
-    cd /usr/local/bin/pifire/auto-install/supervisor
-else
-    cd /usr/local/bin/pifire/auto-install/supervisor/legacy
-fi
+cd /usr/local/bin/pifire/auto-install/supervisor
 
 # Add the current username to the configuration files 
 echo "user=$USER" | tee -a control.conf > /dev/null

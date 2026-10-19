@@ -2,7 +2,7 @@
 Common PiFire WebApp Functions Shared Between Blueprints
 '''
 
-from common.common import process_command, read_settings, read_metrics, seconds_to_string, metrics_items
+from common.common import process_command, read_settings, read_metrics, seconds_to_string, metrics_items, read_history
 from flask import current_app
 from common.redis_queue import RedisQueue
 import time

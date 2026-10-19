@@ -15,10 +15,10 @@ Per allineare `main` al progetto originale: `git fetch upstream && git checkout 
 ## Stato
 
 Fatto:
-- **Modulo di piattaforma** `grillplat/orangepi_zero2w.py`: stessa interfaccia del modulo Raspberry, GPIO tramite libgpiod, PWM hardware via sysfs (per la futura ventola DC), temperatura CPU e Wi-Fi senza `vcgencmd`/`iwconfig`.
+- **Modulo di piattaforma** `grillplat/orangepi_zero2w.py`: stessa interfaccia del modulo Raspberry di PiFire, GPIO tramite libgpiod, PWM hardware via sysfs (per la futura ventola DC), temperatura CPU e Wi-Fi senza `vcgencmd`/`iwconfig`.
 - **Mappa dei pin** `grillplat/opi_gpio.py`: le impostazioni restano in numeri GPIO Raspberry e vengono tradotte sul pin dell'Orange Pi nella stessa posizione dell'header. Verificata contro le tabelle ufficiali di wiringOP.
 - **Wizard**: nuova scheda *"PiFire PCB 4.x.x Modular PCB + Orange Pi Zero 2W"*.
-- **Installer**: `auto-install/install.sh` accetta `PIFIRE_REPO` / `PIFIRE_BRANCH` e salta `rpi.gpio` fuori dal Raspberry. Script di preparazione e di verifica in `auto-install/orangepi/`.
+- **Installer**: `auto-install/install.sh` solo per l'Orange Pi (64 bit, uv), scarica questo repository (`PIFIRE_REPO` / `PIFIRE_BRANCH`). Script di preparazione e di verifica in `auto-install/orangepi/`.
 - **PID in °C**: i controller ora lavorano sempre in °F internamente, come i loro parametri. Prima, in °C, PB e finestre (pensati in °F) davano un controllo diverso da quello previsto. Tolto anche il "colpo" derivativo del primo ciclo (partiva da un valore fittizio di 150°).
 - **Fiamma spenta**: nuovo rilevatore (`controller/flameout.py`, attivo di default in Hold).
 - **Comandi da Home Assistant** via MQTT, con regole di sicurezza.
@@ -26,7 +26,8 @@ Fatto:
 - **Web app**: dashboard *Moderna* e tema scuro *Ember* per tutte le pagine (vedi sotto).
 - **Rete Wi-Fi di emergenza**: se il grill resta senza Wi-Fi accende la rete aperta *PiFire-Setup* per sceglierne una nuova dal telefono (vedi sotto).
 - **Correzioni a PiFire**: in °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati (es. target e attivazione) si annullavano a vicenda.
-- **Sicurezza e pulizia**: corrette falle di PiFire originale nella web app, librerie aggiornate, controllo settimanale delle vulnerabilità (vedi *Sicurezza e dipendenze*).
+- **Sicurezza e pulizia**: corrette falle di PiFire originale nella web app, librerie aggiornate, controllo settimanale delle vulnerabilità; tolto il codice per hardware e servizi che questo grill non usa (vedi *Sicurezza e dipendenze* e *Cosa è stato tolto*).
+- **Ricette in italiano** e fasi della ricetta sulla dashboard Moderna (vedi *Ricette*).
 
 Prossimi passi: modulo display HDMI 1024×600, traduzione italiana e app installabile, taratura del simulatore sulle prime cotture vere.
 
@@ -108,7 +109,7 @@ Apri `http://pifire.local` (o l'indirizzo IP dell'Orange Pi) e nel wizard scegli
 - **System Type**: *Orange Pi Zero 2W*
 - **Relay Type**: *Active High* (modulo SSR della PCB v4)
 - **Fan Type**: *AC Fan*
-- **Unità**: °C
+- **Unità**: °C (già proposta)
 
 ## Mappa dei pin (PCB v4 → Orange Pi Zero 2W)
 
@@ -194,10 +195,10 @@ Corretto rispetto a PiFire originale:
 - **Comandi di sistema dalla web app**: cambio ramo degli aggiornamenti e cancellazione delle ricette costruivano un comando di shell con testo preso dalla richiesta (es. `x; reboot`). Ora non passa più nulla dalla shell e il ramo deve esistere davvero.
 - **Percorsi dei file**: download e cancellazione di ricette, cotture e log accettavano nomi come `../settings.json` o `/etc/passwd`. Ora sono limitati alla loro cartella (`common/safe_paths.py`).
 - **Web app solo dietro nginx**: gunicorn ascolta su `127.0.0.1:8000` invece che su tutta la rete; si entra solo dalla porta 80/443.
-- Ricerca dispositivi WLED: chiamava uno script inesistente, ora funziona. Caricamento di una cottura: salvava in una cartella sbagliata.
+- Caricamento di una cottura: salvava in una cartella sbagliata. Esportazione CSV della cottura in corso: andava in errore (funzione non importata).
 
-Librerie aggiornate (build 73, tutte alle ultime versioni maggiori): Flask 3.1.3, Flask-SocketIO 5.7, gunicorn 26.2, Pillow 13.0, redis 8.1, Apprise 2.0.1, psutil 7.2, bleak 3.0, zeroconf 0.151.5, influxdb-client 1.50, paho-mqtt 2.1, jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Per arrivarci ho riscritto alcune parti invece di tenere librerie vecchie:
-- **web app senza eventlet**: eventlet è abbandonato e gunicorn dalla 25 non ha più il suo worker. Ora Socket.IO gira con i thread (`gunicorn -w 1 --threads 50`, WebSocket tramite `simple-websocket`): stessa app, stesse pagine, l'app per telefono riceve i dati come prima;
+Librerie aggiornate (build 73, tutte alle ultime versioni maggiori): Flask 3.1.3, gunicorn 26.2, Pillow 13.0, redis 8.1, Apprise 2.0.1, psutil 7.2, paho-mqtt 2.1, jQuery 3.7.1 (XSS della 3.4.1), Bootstrap 4.6.2. Per arrivarci ho riscritto alcune parti invece di tenere librerie vecchie:
+- **web app senza eventlet**: eventlet è abbandonato e gunicorn dalla 25 non ha più il suo worker. La web app gira con i thread (`gunicorn -w 1 --threads 50`); Socket.IO, che serviva solo all'app Android, è stato tolto;
 - **controller ML senza scikit-learn**: il modello lineare si calcola con numpy dal file di dati che c'era già (`controller/ml_dataset.csv`), con gli stessi coefficienti; niente più file `.joblib` legato alla versione di scikit-learn;
 - **informazioni di rete con psutil** al posto di `netifaces`, abbandonato;
 - **MQTT con l'interfaccia nuova di paho-mqtt 2** (la vecchia è deprecata e sparirà nella 3);
@@ -219,7 +220,20 @@ Limiti noti, da affrontare più avanti:
 - l'installer di PiFire dà all'utente della web app permessi di amministratore ampi (sudo per bash, apt, cp) per aggiornamenti e wizard;
 - Bootstrap 4 non è più mantenuto (l'unica falla nota riguarda il carosello, con contenuti che qui non arrivano dall'utente); il passaggio a Bootstrap 5 tocca tutte le pagine classiche.
 
-Nel codice di PiFire originale restano piccole cose inutilizzate (import, variabili): le lascio per non complicare l'importazione dei loro aggiornamenti. I moduli per hardware diverso (altri display, sonde, Raspberry) restano perché sono opzioni del wizard.
+## Cosa è stato tolto
+
+Il fork segue la sua strada: il codice che questo grill non usa è stato tolto invece di essere tenuto per allinearsi a PiFire originale.
+
+| Tolto | Cosa c'era |
+|---|---|
+| Raspberry Pi | modulo di piattaforma, installazione a 32 bit e senza uv, `board-config.py` (configurava il `config.txt` del Raspberry), PCB 2.x/3.x/PWM e *Custom* nel wizard, `gpiozero`, `rpi_hardware_pwm` |
+| Display | 30 driver per display SPI/OLED (ILI9341, ILI9488, ST7789, SSD1306) e loro emulazioni. Restano *Nessuno*, *Prototype*, *Protoflex* (prova del motore grafico in una finestra) e `dsi_800x480t.py`, non più nel wizard: è la base del futuro modulo HDMI 1024×600 |
+| Sonde | MAX31865, DS18B20, MCP9600, ADS1015, sonde Bluetooth (Meater, iBBQ) con `bluepy`, `bleak` e `bt_diag.py`. Restano l'ADS1115 (modulo Adafruit, predefinito, e modulo alternativo), *Prototype* e le sonde virtuali |
+| Servizi | dashboard classiche *Default* e *Basic*, app Android (Socket.IO, notifiche OneSignal), InfluxDB, WLED (con `zeroconf`) |
+| Storia di PiFire | ricette di esempio in inglese, passaggi di aggiornamento delle impostazioni dalle versioni 1.4–1.10.0, voci dell'updater precedenti al fork, `upgrade.sh`, note di rilascio di PiFire |
+| Codice morto | import e variabili inutilizzati, funzioni mai chiamate, immagini senza riferimenti |
+
+Restano le sonde di livello del pellet (HC-SR04, VL53L0X) e tutti i controller (PID e varianti, Fuzzy, ML), confrontabili nel simulatore. Le impostazioni di funzioni tolte presenti in un `settings.json` vecchio vengono eliminate alla lettura.
 
 ## Aggiornamenti OTA
 

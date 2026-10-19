@@ -19,7 +19,6 @@
 
 import VL53L0X
 import time
-import logging
 import threading
 from common import create_logger
 

@@ -24,7 +24,6 @@ def recipes_page():
 @recipes_bp.route('/data/upload', methods=['POST', 'GET'])
 @recipes_bp.route('/data/download/<filename>', methods=['GET'])
 def recipes_data(filename=None):
-    settings = read_settings()
     control = read_control()
     RECIPE_FOLDER = current_app.config['RECIPE_FOLDER']
 
@@ -327,7 +326,6 @@ def recipes_data(filename=None):
             section = requestjson['section']
             section_index = requestjson['index']
             asset_name = requestjson['asset_name']
-            asset_id = requestjson['asset_id']
             action = requestjson['action']
             if(action == 'add'):
                 if(section in ['ingredients', 'instructions']):

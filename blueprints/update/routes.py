@@ -136,7 +136,7 @@ def update_page(action=None):
             else:
                 alert = {
                     'type' : 'error',
-                    'text' : f'PiFire System Update cannot be completed when the system is active.  Please shutdown/stop your smoker before retrying.'
+                    'text' : 'PiFire System Update cannot be completed when the system is active.  Please shutdown/stop your smoker before retrying.'
                 }
                 update_data = get_update_data(settings)
                 return render_template(
@@ -161,7 +161,7 @@ def update_page(action=None):
             else:
                 alert = {
                     'type' : 'error',
-                    'text' : f'PiFire System Upgrade cannot be completed when the system is active.  Please shutdown/stop your smoker before retrying.'
+                    'text' : 'PiFire System Upgrade cannot be completed when the system is active.  Please shutdown/stop your smoker before retrying.'
                 }
                 update_data = get_update_data(settings)
                 return render_template(

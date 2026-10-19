@@ -1,215 +1,109 @@
 {
-  "metadata" : {
-    "versions" : {
-      "server" : "1.10.10",
-      "cookfile" : "1.5.0",
-      "recipe" : "1.0.0",
-      "build" : 73
+  "metadata": {
+    "versions": {
+      "server": "1.10.10",
+      "cookfile": "1.5.0",
+      "recipe": "1.0.0",
+      "build": 73
     },
-    "update_notes" : "",
-    "update_warnings" : ""
+    "update_notes": "",
+    "update_warnings": ""
   },
   "dependencies": {
     "app": {
-      "py_dependencies": [
-      ],
-      "apt_dependencies": [
-      ]
+      "py_dependencies": [],
+      "apt_dependencies": []
     },
     "control": {
-      "py_dependencies": [
-      ],
-      "apt_dependencies": [
-      ]
+      "py_dependencies": [],
+      "apt_dependencies": []
     }
   },
-  "versions" : [
+  "versions": [
     {
-      "version" : "1.5.4",
-      "build" : 0,
-      "reboot_required" : false,
-      "dependencies" : {
+      "version": "1.10.10",
+      "build": 71,
+      "_note": "Orange Pi fork: security updates of the libraries, supervisor bound to 127.0.0.1, emergency Wi-Fi service",
+      "reboot_required": false,
+      "dependencies": {
         "app": {
           "py_dependencies": [
-            "flask_mobility",
-            "flask_socketio",
-            "flask_qrcode"
-          ],
-          "apt_dependencies": [
-            "python3-scipy"
-          ],
-          "command_list" : []
-        },
-        "control": {
-          "py_dependencies": [
-            "apprise",
-            "scikit-fuzzy",
-            "scikit-learn==1.4.2"
-          ],
-          "apt_dependencies": [
-            "libatlas-base-dev"
-          ],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.6.0",
-      "build" : 30,
-      "reboot_required" : false,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": [],
-          "apt_dependencies": [],
-          "command_list" : []
-        },
-        "control": {
-          "py_dependencies": [
-            "ratelimitingfilter"
+            "flask==3.1.3",
+            "pillow==12.3.0",
+            "redis==6.4.0",
+            "zeroconf==0.151.5"
           ],
           "apt_dependencies": [],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.7.0",
-      "build" : 0,
-      "reboot_required" : true,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": [],
-          "apt_dependencies": [],
-          "command_list" : []
-        },
-        "control": {
-          "py_dependencies": ["paho-mqtt"],
-          "apt_dependencies": [],
-          "command_list" : [
-            ["sudo", "bash", "updater/bl_udev_170.sh"]
+          "command_list": [
+            [
+              "sudo",
+              "bash",
+              "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"
+            ]
           ]
-        }
-      }
-    },
-    {
-      "version" : "1.8.0",
-      "build" : 18,
-      "reboot_required" : true,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": [],
-          "apt_dependencies": [],
-          "command_list" : [["sudo", "cp", "./auto-install/supervisor/*.conf", "/etc/supervisor/conf.d"]]
-        },
-        "control": {
-          "py_dependencies": ["rpi-hardware-pwm", "scikit-learn==1.4.2"],
-          "apt_dependencies": [],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.9.0",
-      "build" : 23,
-      "reboot_required" : false,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": ["bluepy"],
-          "apt_dependencies": ["libglib2.0-dev"],
-          "command_list" : [["sudo", "bash", "/usr/local/bin/pifire/wizard/bluepy.sh"]]
-        },
-        "control": {
-          "py_dependencies": ["numpy==1.24.2"],
-          "apt_dependencies": [],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.10.0",
-      "build" : 34,
-      "reboot_required" : true,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": ["netifaces==0.11.0"],
-          "apt_dependencies": [],
-          "command_list" : []
         },
         "control": {
           "py_dependencies": [],
           "apt_dependencies": [],
-          "command_list" : [["bash", "/usr/local/bin/pifire/updater/upgrade.sh"]]
+          "command_list": []
         }
       }
     },
     {
-      "version" : "1.10.9",
-      "build" : 69,
-      "reboot_required" : true,
-      "dependencies" : {
+      "version": "1.10.10",
+      "build": 72,
+      "_note": "Orange Pi fork: Apprise 1.13.1 (PYSEC-2026-4200), notifications without HTTP redirects",
+      "reboot_required": false,
+      "dependencies": {
         "app": {
           "py_dependencies": [],
           "apt_dependencies": [],
-          "command_list" : []
+          "command_list": []
         },
         "control": {
-          "py_dependencies": ["bleak==3.0.1"],
-          "apt_dependencies": ["bluetooth", "bluez"],
-          "command_list" : [["sudo", "rfkill", "unblock", "bluetooth"]]
+          "py_dependencies": [
+            "apprise==1.13.1"
+          ],
+          "apt_dependencies": [],
+          "command_list": []
         }
       }
     },
     {
-      "version" : "1.10.10",
-      "build" : 71,
-      "_note" : "Orange Pi fork: security updates of the libraries, supervisor bound to 127.0.0.1, emergency Wi-Fi service",
-      "reboot_required" : false,
-      "dependencies" : {
+      "version": "1.10.10",
+      "build": 73,
+      "_note": "Orange Pi fork: library refresh (Apprise 2, redis 8, Pillow 13, gunicorn 26 on threads instead of eventlet, numpy ML controller); supervisor conf via ota-system.sh",
+      "reboot_required": false,
+      "dependencies": {
         "app": {
-          "py_dependencies": ["flask==3.1.3", "pillow==12.3.0", "redis==6.4.0", "zeroconf==0.151.5"],
+          "py_dependencies": [
+            "pillow==13.0.0",
+            "flask_qrcode==3.2.2",
+            "flask_socketio==5.7.0",
+            "simple-websocket==1.1.0",
+            "gunicorn==26.2.0",
+            "gpiozero==2.0.1.post3",
+            "redis==8.1.0",
+            "apprise==2.0.1",
+            "psutil==7.2.2",
+            "rpi_hardware_pwm==0.3.1",
+            "bleak==3.0.2",
+            "influxdb_client[ciso]==1.50.0",
+            "networkx==3.7"
+          ],
           "apt_dependencies": [],
-          "command_list" : [["sudo", "bash", "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"]]
+          "command_list": [
+            [
+              "sudo",
+              "bash",
+              "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"
+            ]
+          ]
         },
         "control": {
           "py_dependencies": [],
           "apt_dependencies": [],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.10.10",
-      "build" : 72,
-      "_note" : "Orange Pi fork: Apprise 1.13.1 (PYSEC-2026-4200), notifications without HTTP redirects",
-      "reboot_required" : false,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": [],
-          "apt_dependencies": [],
-          "command_list" : []
-        },
-        "control": {
-          "py_dependencies": ["apprise==1.13.1"],
-          "apt_dependencies": [],
-          "command_list" : []
-        }
-      }
-    },
-    {
-      "version" : "1.10.10",
-      "build" : 73,
-      "_note" : "Orange Pi fork: library refresh (Apprise 2, redis 8, Pillow 13, gunicorn 26 on threads instead of eventlet, numpy ML controller); supervisor conf via ota-system.sh",
-      "reboot_required" : false,
-      "dependencies" : {
-        "app": {
-          "py_dependencies": ["pillow==13.0.0", "flask_qrcode==3.2.2", "flask_socketio==5.7.0", "simple-websocket==1.1.0", "gunicorn==26.2.0", "gpiozero==2.0.1.post3", "redis==8.1.0", "apprise==2.0.1", "psutil==7.2.2", "rpi_hardware_pwm==0.3.1", "bleak==3.0.2", "influxdb_client[ciso]==1.50.0", "networkx==3.7"],
-          "apt_dependencies": [],
-          "command_list" : [["sudo", "bash", "/usr/local/bin/pifire/auto-install/orangepi/ota-system.sh"]]
-        },
-        "control": {
-          "py_dependencies": [],
-          "apt_dependencies": [],
-          "command_list" : []
+          "command_list": []
         }
       }
     }

@@ -99,7 +99,7 @@ class MqttNotificationHandler:
 			self._check_connection()
 						
 		except:
-			self._mqttLogger.exception(f'Error initializing the mqtt class object: ')
+			self._mqttLogger.exception('Error initializing the mqtt class object: ')
 
 	def __del__(self):
 		try:
@@ -107,7 +107,7 @@ class MqttNotificationHandler:
 			self.client.loop_stop()
 			self.client.disconnect()
 		except:
-			self._mqttLogger.exception(f'Error occurred closing mqtt client: ')	
+			self._mqttLogger.exception('Error occurred closing mqtt client: ')	
 	
 	def _connect(self):	
 			try:
@@ -139,7 +139,7 @@ class MqttNotificationHandler:
 					self._mqttLogger.error(f"Error {mqtt.error_string(ret)} connecting to {settings['broker']}.")
 					self.client = None
 			except:
-				self._mqttLogger.exception(f'Error occurred connecting to the mqtt broker: ')
+				self._mqttLogger.exception('Error occurred connecting to the mqtt broker: ')
 
 	# paho-mqtt 2 callback API VERSION2 (VERSION1 is deprecated): reason_code is a ReasonCode
 	def _on_connect(self, client, userdata, flags, reason_code, properties):
@@ -198,7 +198,7 @@ class MqttNotificationHandler:
 		
 		# Connect if not already connected
 		if self.client is None or not self.client.is_connected():
-			self._mqttLogger.error(f"Need to connect to the broker")
+			self._mqttLogger.error("Need to connect to the broker")
 			self._connect()
 			self.last_conn_time = time.time()
 		
@@ -418,7 +418,7 @@ class MqttNotificationHandler:
 				data['available_memory'] = psutil.virtual_memory().available
 				data['free_memory'] = psutil.virtual_memory().free
 				if 'sensors_temperatures' in dir(psutil):
-					# This is for raspberry PI.  Other hardware may be different
+					# 'cpu_thermal' is the CPU sensor on the Orange Pi Zero 2W (H618) too
 					temps = psutil.sensors_temperatures()
 					if 'cpu_thermal' in temps:
 						cpu_temps = temps['cpu_thermal']
@@ -471,4 +471,4 @@ class MqttNotificationHandler:
 				self._publish('probe_data_tr', tr_data)
 				
 		except:
-			self._mqttLogger.exception(f'Error occurred publishing device data: ')
+			self._mqttLogger.exception('Error occurred publishing device data: ')

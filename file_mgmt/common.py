@@ -49,8 +49,8 @@ def read_json_file_data(filename, jsonfile, unpackassets=True):
 					#  Read the file(s) into memory
 					data = archive.read(f'assets/{mediafile}')  # Read bytes into variable
 					thumb = archive.read(f'assets/thumbs/{mediafile}')  # Read bytes into variable
-					if not os.path.exists(f'/tmp/pifire'):
-						os.mkdir(f'/tmp/pifire')
+					if not os.path.exists('/tmp/pifire'):
+						os.mkdir('/tmp/pifire')
 					if not os.path.exists(f'/tmp/pifire/{parent_id}'):
 						os.mkdir(f'/tmp/pifire/{parent_id}')
 					if not os.path.exists(f'/tmp/pifire/{parent_id}/thumbs'):
@@ -65,7 +65,7 @@ def read_json_file_data(filename, jsonfile, unpackassets=True):
 					destination.close()
 
 					if not os.path.exists('./static/img/tmp'):
-						os.mkdir(f'./static/img/tmp')
+						os.mkdir('./static/img/tmp')
 					if not os.path.exists(f'./static/img/tmp/{parent_id}'):
 						os.symlink(f'/tmp/pifire/{parent_id}', f'./static/img/tmp/{parent_id}')
 

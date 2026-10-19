@@ -18,7 +18,7 @@ import zipfile
 import pathlib
 
 from flask import current_app
-from common import read_settings, generate_uuid, convert_temp
+from common import read_settings, generate_uuid
 from file_mgmt.common import read_json_file_data
 from file_mgmt.media import unpack_thumb
 
@@ -134,7 +134,6 @@ def create_recipefile():
     '''
     This function creates an empty recipe file in the RECIPE_FOLDER 
     '''
-    global RECIPE_FOLDER
     now = datetime.datetime.now()
     nowstring = now.strftime('%Y-%m-%d--%H%M')
     title = nowstring + '-Recipe'

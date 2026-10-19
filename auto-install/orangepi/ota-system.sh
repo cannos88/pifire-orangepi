@@ -16,12 +16,8 @@ LOG="$PIFIRE_DIR/logs/ota-system.log"
 mkdir -p "$PIFIRE_DIR/logs"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 
-# Supervisor: same layout choice as install.sh / upgrade.sh
-if [[ -x "$PIFIRE_DIR/.venv/bin/python" ]]; then
-	CONF_DIR="$PIFIRE_DIR/auto-install/supervisor"
-else
-	CONF_DIR="$PIFIRE_DIR/auto-install/supervisor/legacy"
-fi
+# Supervisor: the configuration install.sh copies
+CONF_DIR="$PIFIRE_DIR/auto-install/supervisor"
 if [[ -d "$SUPERVISOR_DIR" ]]; then
 	# install.sh appends "user=<installer user>" to these files; the repo copies do not
 	# have it, so keep the user already configured (else supervisor would run PiFire as root)

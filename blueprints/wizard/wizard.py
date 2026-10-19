@@ -1,15 +1,4 @@
-from common.common import read_settings, read_wizard, load_wizard_install_info
-
-def parse_bt_device_info(bt_devices):
-	settings = read_settings()
-	# Check if this hardware id is already in use
-	for index, peripheral in enumerate(bt_devices):
-		for device in settings['probe_settings']['probe_map']['probe_devices']:
-			#print(f'[DEBUG] Comparing {device["name"]} ({device["config"].get('hardware_id', None)}) to {name} ({hw_id})')
-			if device['config'].get('hardware_id', None) == peripheral['hw_id']:
-				bt_devices[index]['info'] += f'This hardware ID is already in use by {device["device"]}'
-				return bt_devices
-	return bt_devices
+from common.common import read_wizard, load_wizard_install_info
 
 def get_settings_dependencies_values(settings, moduleData):
 	moduleSettings = {}
@@ -43,7 +32,7 @@ def wizardInstallInfoDefaults(wizardData, settings):
 			'probes' : {
 				'profile_selected' : [],
 				'settings' : {
-					'units' : 'F'
+					'units' : 'C'  # Orange Pi fork: °C by default on the first setup
 				},
 				'config' : {}
 			}
@@ -109,11 +98,11 @@ def wizardInstallInfoExisting(wizardData, settings):
 		''' Error condition if the item in settings doesn't match the wizard manifest '''
 		if selected not in wizardData['modules'][module].keys():
 			if module == 'grillplatform':
-				selected = 'custom'
+				selected = 'pcb_4.x.x_opizero2w'  # fork: the only platform
 				settings['platform']['current'] = selected
 			else:
 				selected = 'none'
-			wizardInstallInfo['modules'][module]['profile_selected'] = selected
+			wizardInstallInfo['modules'][module]['profile_selected'] = [selected]
 
 		for setting in wizardData['modules'][module][selected]['settings_dependencies']:
 			settingsLocation = wizardData['modules'][module][selected]['settings_dependencies'][setting]['settings']
@@ -122,7 +111,7 @@ def wizardInstallInfoExisting(wizardData, settings):
 				settingsValue = settingsValue[settingsLocation[index]]
 			wizardInstallInfo['modules'][module]['settings'][setting] = str(settingsValue)
 		if module == 'display':
-			wizardInstallInfo['modules'][module]['config'] = settings['display']['config'][settings['modules']['display']]
+			wizardInstallInfo['modules'][module]['config'] = settings['display']['config'].get(selected, {})
 	return wizardInstallInfo
 
 def prepare_wizard_data(form_data):

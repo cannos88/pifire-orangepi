@@ -257,12 +257,17 @@ python -m pytest tests
 - una scheda per sonda: tocca la scheda per impostare il target (con valori tipici per manzo, maiale, pollo, pulled pork); mostra il tempo stimato e diventa verde con *PRONTO* quando ci arriva;
 - timer con 15′/30′/1 h o durata a scelta, con spegnimento o mantenimento in caldo alla fine;
 - stato di ventola, coclea e candeletta, pellet usato nella cottura (stima dal tempo della coclea).
+- durante una ricetta: nome, fase (*Fase 3 di 5 · Mantenimento a 115°*), quando finisce (timer o sonda) e la fase dopo; quando una fase aspetta te compare il messaggio con il pulsante *Continua*. *Fase successiva* chiude subito la fase in corso (API `/api/set/recipe/continue` e `/api/set/recipe/next`).
 
 Accensione, spegnimento e Stop chiedono conferma. Stop col fuoco acceso avvisa che è meglio lo spegnimento.
 
 **Tema Ember**: con *Settings → Theme → Dark* tutte le pagine prendono la stessa grafica (`static/css/ember.css`). La dashboard Moderna lo usa sempre. I font Barlow sono inclusi nel progetto (`static/font/barlow/`), quindi funziona anche senza internet; tolto dal CSS scuro di Bootstrap il caricamento di un font da Google.
 
 Su un'installazione nuova sono già impostati dashboard Moderna e tema scuro. Su una esistente: *Settings → Dashboard → Moderna (Ember)* e *Settings → Theme*.
+
+## Ricette
+
+Sedici ricette in italiano, in °C e tarate sul Pro 22, arrivano con il codice (`recipes/IT-*.pfrecipe`): pulled pork, costine, brisket, pollo, ali, salsiccia calabrese, porchetta, burnt ends, tagliata, salmone, pulled salmon, mac & cheese, short ribs, chili, jalapeño poppers, bacon bomb. Il testo sta in `tools/recipes/it.json`; i file si rigenerano con `python3 tools/build_recipes.py` (un test controlla che siano allineati). Le ricette di PiFire originale sono in °F: ora si convertono correttamente su un grill in °C (prima la ricetta si bloccava all'avvio).
 
 ## Grafica
 

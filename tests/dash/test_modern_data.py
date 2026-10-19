@@ -72,3 +72,24 @@ def test_pellet_estimate_counts_only_this_cook():
 	]
 	assert md.cook_pellet_estimate(metrics, 1000, 0.3) == 90
 	assert md.cook_pellet_estimate(metrics, 0, 0.3) is None
+
+
+def test_recipe_state():
+	files = {
+		'metadata': ({'title': 'Pulled Pork'}, 'OK'),
+		'recipe': ({'steps': [{'mode': 'Startup'}, {'mode': 'Smoke'}, {'mode': 'Hold'}, {'mode': 'Shutdown'}]}, 'OK'),
+	}
+	read = lambda filename, part: files[part]
+	control = {'mode': 'Recipe', 'recipe': {'filename': './recipes/IT-01-Pulled-Pork.pfrecipe', 'step': 2, 'step_data': {
+		'mode': 'Hold', 'hold_temp': 115, 'timer': 0, 'message': 'Avvolgi e premi Continua.',
+		'trigger_temps': {'Grill': 0, 'Probe1': 75}, 'triggered': True, 'pause': True}}}
+	state = md.recipe_state(control, read)
+	assert state['title'] == 'Pulled Pork' and (state['step'], state['steps']) == (3, 4)
+	assert state['targets'] == {'Probe1': 75} and state['waiting'] and state['next_mode'] == 'Shutdown'
+
+	control['recipe']['step_data']['pause'] = False	# Continua pressed: no longer waiting
+	assert not md.recipe_state(control, read)['waiting']
+	assert md.recipe_state({'mode': 'Hold'}, read) is None
+	# unreadable file: still a usable answer
+	state = md.recipe_state(control, lambda f, p: ({}, 'ERROR'))
+	assert state['title'] == '' and state['steps'] == 0 and state['next_mode'] == ''

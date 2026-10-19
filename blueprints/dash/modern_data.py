@@ -95,3 +95,44 @@ def timer_state(timer, notify_data, now):
 		info['remaining'] = max(0, int(end - now))
 		info['end'] = end
 	return info
+
+
+def recipe_state(control, read_file):
+	'''
+	The running recipe as the dashboard shows it, or None.
+
+	:param control: control structure (control['recipe'] = filename, step, step_data)
+	:param read_file: function(filename, part) -> (data, status) reading one JSON part
+	                  of the .pfrecipe (file_mgmt.common.read_json_file_data)
+	:return: {'title', 'step' (1-based), 'steps', 'mode', 'hold_temp', 'timer' (min),
+	          'targets' {probe label: temp}, 'message', 'waiting', 'next_mode', 'next_hold'}
+	'''
+	if (control or {}).get('mode') != 'Recipe':
+		return None
+	recipe = control.get('recipe') or {}
+	step_data = recipe.get('step_data') or {}
+	filename = recipe.get('filename') or ''
+	title, steps = '', []
+	if filename:
+		metadata, status = read_file(filename, 'metadata')
+		if status == 'OK':
+			title = metadata.get('title', '')
+		body, status = read_file(filename, 'recipe')
+		if status == 'OK':
+			steps = body.get('steps', [])
+	index = recipe.get('step', 0)
+	targets = {label: temp for label, temp in (step_data.get('trigger_temps') or {}).items()
+			   if isinstance(temp, (int, float)) and temp > 0}
+	return {
+		'title': title,
+		'step': index + 1,
+		'steps': len(steps),
+		'mode': step_data.get('mode', ''),
+		'hold_temp': step_data.get('hold_temp', 0),
+		'timer': step_data.get('timer', 0),
+		'targets': targets,
+		'message': step_data.get('message', ''),
+		'waiting': bool(step_data.get('triggered') and step_data.get('pause')),
+		'next_mode': steps[index + 1].get('mode', '') if index + 1 < len(steps) else '',
+		'next_hold': steps[index + 1].get('hold_temp', 0) if index + 1 < len(steps) else 0,
+	}

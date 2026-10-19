@@ -139,7 +139,22 @@
 				</div>
 			</div>
 
-			<!-- Manual / Recipe and anything else this dashboard does not drive -->
+			<!-- Recipe: the step the program is on; "Continua" when a step waits for you -->
+			<div class="md-panel" data-panel="recipe" hidden>
+				<div class="md-phase">
+					<div class="md-muted md-small" id="recipeTitle">Ricetta</div>
+					<div class="md-phase-title" id="recipeStep">—</div>
+					<div class="md-muted" id="recipeEnd"></div>
+					<div class="md-recipe-msg" id="recipeMsg" hidden></div>
+				</div>
+				<div class="md-row md-row-between md-footer">
+					<button type="button" class="md-btn md-btn-ghost" data-action="recipe-next" id="recipeNext">Fase successiva</button>
+					<button type="button" class="md-btn md-btn-primary" data-action="recipe-continue" id="recipeContinue" hidden>Continua</button>
+					<button type="button" class="md-btn md-btn-danger-outline" data-action="shutdown">Avvia spegnimento</button>
+				</div>
+			</div>
+
+			<!-- Manual and anything else this dashboard does not drive -->
 			<div class="md-panel" data-panel="other" hidden>
 				<p class="md-muted md-idle-text" id="otherText"></p>
 				<div class="md-row md-row-end md-footer">

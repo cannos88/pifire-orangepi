@@ -6,7 +6,9 @@ from flask import jsonify
 from common.common import read_settings, read_control, process_command, read_errors, read_warnings, read_probe_status, write_settings, read_generic_json
 from common.common import read_history, read_metrics, read_pellet_db, read_control_pending
 from common.app import get_system_command_output
-from .modern_data import HISTORY_POINTS_PER_MINUTE, downsample_history, cook_pellet_estimate, timer_state
+from common.safe_paths import safe_within
+from file_mgmt.common import read_json_file_data
+from .modern_data import HISTORY_POINTS_PER_MINUTE, downsample_history, cook_pellet_estimate, timer_state, recipe_state
 
 from . import dash_bp
 
@@ -66,6 +68,12 @@ def dash_config():
 	
 	return 'Bad Request'
 
+def _read_recipe_part(filename, part):
+	# only files in the recipe folder (the filename comes from control data)
+	if not safe_within(filename, './recipes/'):
+		return {}, 'ERROR'
+	return read_json_file_data(filename, part)
+
 @dash_bp.route('/modern/data', methods=['GET'])
 def dash_modern_data():
 	'''
@@ -104,5 +112,6 @@ def dash_modern_data():
 		'pellets_g': pellets_g,
 		'hopper_level': hopper,
 		'mqtt': bool(settings.get('notify_services', {}).get('mqtt', {}).get('enabled', False)),
+		'recipe': recipe_state(control, _read_recipe_part),
 		'server_time': time.time(),
 	})

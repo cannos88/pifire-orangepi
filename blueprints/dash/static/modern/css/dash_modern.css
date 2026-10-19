@@ -141,6 +141,7 @@
 .md-phase { display: flex; flex-direction: column; gap: 12px; }
 .md-phase-title { font-size: 18px; font-weight: 600; }
 .md-idle-text { margin: 0; }
+.md-recipe-msg { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--em-ember); background: rgba(255, 110, 30, 0.08); line-height: 1.45; }
 
 /* Chart */
 .md-chart-card { padding: 22px 28px 18px; }

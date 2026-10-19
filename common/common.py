@@ -3087,6 +3087,30 @@ def process_command(action=None, arglist=[], origin='unknown', direct_write=Fals
 				data['result'] = 'ERROR'
 				data['message'] = f'Before changing manual outputs, system must be put into Manual mode.'
 
+		elif arglist[0] == 'recipe':
+			'''
+			Recipe step control (Orange Pi fork: used by the Modern dashboard)
+			/api/set/recipe/continue  resume a step that is waiting (pause) after its trigger
+			/api/set/recipe/next      end the current step now and go to the next one
+			'''
+			step_data = control.get('recipe', {}).get('step_data') or {}
+			if control.get('mode') != 'Recipe':
+				data['result'] = 'ERROR'
+				data['message'] = 'No recipe is running.'
+			elif arglist[1] == 'continue':
+				if step_data.get('triggered') and step_data.get('pause'):
+					control['recipe']['step_data']['pause'] = False
+					write_control(control, direct_write=direct_write, origin=origin)
+				else:
+					data['result'] = 'ERROR'
+					data['message'] = 'The recipe is not waiting for you.'
+			elif arglist[1] == 'next':
+				control['updated'] = True
+				write_control(control, direct_write=direct_write, origin=origin)
+			else:
+				data['result'] = 'ERROR'
+				data['message'] = f'Recipe command {arglist[1]} not recognized.'
+
 		else:
 			data['result'] = 'ERROR'
 			data['message'] = f'Set API Argument: {arglist[0]} not recognized.'

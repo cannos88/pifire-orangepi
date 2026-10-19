@@ -1,0 +1,432 @@
+{
+  "_about": "Ricette PiFire in italiano per il Traeger Pro 22, in °C (testo approvato da Carmelo: Google Doc 'Ricette PiFire – Traeger Pro 22 (Aggiornato)'). Si trasformano in recipes/*.pfrecipe con: python3 tools/build_recipes.py. Fasi: mode Startup|Smoke|Hold|Shutdown, temp = mantenimento °C, timer = minuti, probe = target sonda 1 °C, grill = target del grill °C, pause = aspetta Continua, msg = avviso (inviato quando la fase finisce). La fase finisce al primo tra timer e target.",
+  "author": "Carmelo",
+  "username": "cannos88",
+  "recipes": [
+    {
+      "file": "IT-01-Pulled-Pork",
+      "title": "Pulled Pork",
+      "description": "Spalla di maiale con osso (Boston Butt) da 3–4 kg, 10–14 ore più riposo in borsa termica. Il target a 96–98 °C garantisce lo scioglimento totale del collagene.",
+      "difficulty": "Easy", "prep_time": 20, "cook_time": 720,
+      "ingredients": [
+        ["Spalla di maiale con osso", "3–4 kg"],
+        ["Senape gialla (come legante/binder)", "2 cucchiai"],
+        ["Rub base", "6–8 cucchiai"],
+        ["Succo di mela e aceto di mele (50/50), in uno spruzzino", "150 ml"]
+      ],
+      "instructions": [
+        ["La sera prima: rifila il grasso in eccesso lasciandone 5 mm, spalma la senape e copri abbondantemente di rub. Lascia in frigo.", 0],
+        ["Metti la spalla sul grill freddo, sonda 1 nel punto più spesso senza toccare l'osso, e avvia la ricetta.", 0],
+        ["Dalla terza ora, spruzza ogni ora fino al formarsi del bark (intorno ai 74–76 °C).", 2],
+        ["A fine cottura (sonda che entra come nel burro a 96–98 °C), togli dal grill e fai riposare avvolta per almeno 2 ore in borsa termica con asciugamani caldi prima di sfilacciare.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 60},
+        {"mode": "Hold", "temp": 115, "probe": 75, "pause": true, "msg": "Controlla il bark: se è ben fissato avvolgi stretto in butcher paper o doppio alluminio con un goccio di succo di mela, rimetti la sonda e premi Continua."},
+        {"mode": "Hold", "temp": 120, "probe": 97, "pause": true, "msg": "Prova la tenerezza (probe tender): la sonda deve entrare senza alcuna resistenza. Togli la carne per il riposo in borsa termica e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-02-Costine-St-Louis",
+      "title": "Costine St. Louis (2.5-1.5-0.5)",
+      "description": "Due costate di maiale St. Louis, 4 ore e mezza totali: rispetto al vecchio 3-2-1 evita che la carne stracuocia mantenendo il morso perfetto da gara (la carne si stacca solo dove mordi).",
+      "difficulty": "Easy", "prep_time": 20, "cook_time": 270,
+      "ingredients": [
+        ["Costine di maiale St. Louis", "2 costate"],
+        ["Rub base", "6 cucchiai"],
+        ["Succo di mela (per spruzzare e per il foil)", "100 ml"],
+        ["Burro (per l'avvolgimento)", "50 g"],
+        ["Miele (per l'avvolgimento)", "2 cucchiai"],
+        ["Zucchero di canna (per l'avvolgimento)", "2 cucchiai"],
+        ["Salsa barbecue", "150 ml"]
+      ],
+      "instructions": [
+        ["Rimuovi la pleura (membrana) dal lato delle ossa, asciuga e applica il rub su entrambi i lati.", 0],
+        ["Metti le costine sul grill con le ossa in basso e avvia la ricetta. Spruzza con succo di mela dopo i primi 90 minuti.", 0],
+        ["All'avvolgimento: doppio foglio di alluminio, stendi burro a fiocchetti, miele e zucchero di canna, adagia le costine con il lato carne in giù, aggiungi 2 cucchiai di succo di mela e chiudi stretto evitando che le ossa buchino il foil.", 2],
+        ["Nell'ultima mezz'ora rimettile scoperte con il lato carne in su e glassa con la salsa BBQ.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 60},
+        {"mode": "Hold", "temp": 115, "timer": 90, "pause": true, "msg": "Avvolgi le costine in doppio alluminio (lato carne in giù) su burro, miele e zucchero di canna, poi premi Continua."},
+        {"mode": "Hold", "temp": 120, "timer": 90, "pause": true, "msg": "Scarta le costine con attenzione ai liquidi bollenti, rimettile in griglia lato carne in su, spennella la salsa BBQ e premi Continua."},
+        {"mode": "Hold", "temp": 120, "timer": 30, "msg": "Salsa fissata e costine pronte: fai il bend test (prova della piega)."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-03-Brisket",
+      "title": "Brisket",
+      "description": "Punta di petto intera (Packer: flat e point) da 5–6 kg, 12–16 ore più almeno 2–3 ore di riposo. Sul Traeger Pro 22 il wrap è posticipato a 78–80 °C per garantire un bark solido e scuro.",
+      "difficulty": "Hard", "prep_time": 45, "cook_time": 840,
+      "ingredients": [
+        ["Punta di petto intera", "5–6 kg"],
+        ["Rub SPG (sale grosso, pepe nero 16 mesh, aglio in polvere)", "6 cucchiai"],
+        ["Sego di manzo fuso (tallow) o burro chiarificato (per l'avvolgimento)", "60 g"],
+        ["Carta da macellaio non cerata (butcher paper)", "2 m"]
+      ],
+      "instructions": [
+        ["Rifila il grasso a 5 mm in modo aerodinamico, rimuovendo il grasso duro del deckle. Condisci con SPG la sera prima.", 0],
+        ["Metti sul grill con il grasso verso il basso (per schermare il calore radiante del deflettore del Pro 22) e sonda 1 al centro della parte spessa del flat.", 0],
+        ["Avvolgi in butcher paper unta con il sego solo quando il bark è scuro e croccante (circa 78–80 °C).", 2],
+        ["A fine cottura (96 °C o probe tender), fai sbollire 15 minuti a temperatura ambiente, poi metti in borsa termica avvolto in asciugamani per almeno 2–3 ore prima di affettare contro fibra.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 90},
+        {"mode": "Hold", "temp": 110, "probe": 79, "pause": true, "msg": "Controlla il bark: se è scuro e ben formato, avvolgi stretto in butcher paper con il sego, rimetti la sonda nel flat e premi Continua."},
+        {"mode": "Hold", "temp": 120, "probe": 96, "pause": true, "msg": "Verifica la tenerezza nel flat in più punti: deve entrare come nel burro. Togli per il lungo riposo in borsa termica e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-04-Pollo-a-libro",
+      "title": "Pollo intero a libro (Spatchcock)",
+      "description": "Pollo da 1,5–2 kg aperto a libro, circa 2 ore. La fase iniziale di fumo unita al pizzico di baking powder regala aroma affumicato e pelle di vetro.",
+      "difficulty": "Easy", "prep_time": 20, "cook_time": 120,
+      "ingredients": [
+        ["Pollo intero", "1,5–2 kg"],
+        ["Olio extravergine", "1 cucchiaio"],
+        ["Rub base", "3 cucchiai"],
+        ["Lievito chimico per salati (baking powder)", "½ cucchiaino"]
+      ],
+      "instructions": [
+        ["Rimuovi la spina dorsale con le forbici da cucina, appiattisci lo sterno e asciuga perfettamente la pelle (ottimo lasciarlo scoperto in frigo la notte prima).", 0],
+        ["Ungi leggermente e condisci con il mix di rub e baking powder. Metti sul grill con la pelle in alto e la sonda 1 nel centro del petto.", 0],
+        ["A fine cottura fai riposare 10 minuti scoperto (per non inumidire la pelle) prima di tagliare.", 2]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 45},
+        {"mode": "Hold", "temp": 195, "probe": 74, "pause": true, "msg": "Petto a 74 °C (la coscia sarà intorno agli 82–85 °C). Togli il pollo e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-05-Ali-di-pollo",
+      "title": "Ali di pollo croccanti",
+      "description": "1,5 kg di ali, circa 1 ora e 15: mezz'ora a fuoco basso per affumicare e asciugare la pelle, poi calore alto per renderle croccanti.",
+      "difficulty": "Easy", "prep_time": 15, "cook_time": 75,
+      "ingredients": [
+        ["Ali di pollo divise in drumette e flat", "1,5 kg"],
+        ["Lievito chimico in polvere (per salati, senza vanillina)", "1 cucchiaio"],
+        ["Rub base", "3 cucchiai"],
+        ["Salsa finale: barbecue, Buffalo sauce oppure burro fuso con peperoncino calabrese e miele", ""]
+      ],
+      "instructions": [
+        ["Tampona benissimo le ali con carta assorbente, mescola rub e lievito e condisci le ali in modo uniforme.", 0],
+        ["Disponile sul grill ben distanziate; cottura interamente a tempo senza sonda.", 0],
+        ["A fine cottura passale in una ciotola con la salsa calda e servi subito.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Hold", "temp": 110, "timer": 30},
+        {"mode": "Hold", "temp": 200, "timer": 20, "msg": "Gira le ali."},
+        {"mode": "Hold", "temp": 200, "timer": 20, "pause": true, "msg": "Ali pronte e croccanti: toglile, condiscile e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-06-Salsiccia-calabrese",
+      "title": "Salsiccia calabrese affumicata",
+      "description": "Salsiccia fresca calabrese (o al finocchietto) da 1–2 kg, circa 1 ora e 45. Cotta a 110 °C per non far sciogliere troppo velocemente il grasso sotto il budello, lasciandola gonfia e succosissima.",
+      "difficulty": "Easy", "prep_time": 5, "cook_time": 105,
+      "ingredients": [
+        ["Salsiccia fresca a catenella o a ruota", "1–2 kg"]
+      ],
+      "instructions": [
+        ["Non bucare mai il budello. Mettila sul grill freddo e infila la sonda 1 per il lungo al centro di una salsiccia.", 0],
+        ["Appena raggiunge i 71 °C al cuore, toglila e lasciala riposare 5 minuti prima di tagliarla.", 2]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 30},
+        {"mode": "Hold", "temp": 110, "probe": 71, "pause": true, "msg": "Salsiccia cotta e gonfia: toglila e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-07-Porchetta",
+      "title": "Porchetta",
+      "description": "Pancia con cotenna arrotolata attorno alla lonza, 3–4 kg, 5–6 ore. Cotta lentamente nel Traeger per affumicatura e succosità, con scoppiettatura finale della cotenna (crackling) sotto il grill del forno di casa o col cannello per non asciugare la lonza.",
+      "difficulty": "Intermediate", "prep_time": 60, "cook_time": 330,
+      "ingredients": [
+        ["Pancia di maiale con cotenna", "circa 2,5 kg"],
+        ["Lonza di maiale", "circa 1 kg"],
+        ["Sale fino", "35 g"],
+        ["Pepe nero macinato grosso", "1 cucchiaio e mezzo"],
+        ["Finocchietto selvatico (o semi di finocchio pestati)", "2 cucchiai"],
+        ["Aglio tritato", "4 spicchi"],
+        ["Rosmarino fresco tritato", "3 rametti"],
+        ["Scorza grattugiata di limone", "1 limone"],
+        ["Bicarbonato di sodio (da strofinare con sale sulla cotenna)", "1 cucchiaino"]
+      ],
+      "instructions": [
+        ["Il giorno prima: condisci l'interno, inserisci la lonza, arrotola e lega stretto ogni 2–3 cm. Bucherella leggermente solo l'epidermide della cotenna (senza arrivare alla carne), strofinala con sale e un pizzico di bicarbonato e lasciala in frigo scoperta per 24 ore.", 0],
+        ["Sul grill con sonda 1 al centro della lonza.", 0],
+        ["Arrivata a 70 °C al cuore sul Traeger, trasferiscila sotto il grill ventilato del forno di casa a 250 °C per 10–15 minuti (o usa una pistola termica/cannello) finché la cotenna non soffia e diventa croccantissima. Riposo di 20 minuti prima del taglio.", 2]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 45},
+        {"mode": "Hold", "temp": 120, "probe": 70, "pause": true, "msg": "Cuore a 70 °C: togli la porchetta e passala sotto il grill a 250 °C (o cannello) per far scoppiare la cotenna. Premi Continua per spegnere."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-08-Pork-Belly-Burnt-Ends",
+      "title": "Pork Belly Burnt Ends",
+      "description": "Pancia di maiale senza cotenna da 2 kg tagliata a cubi da cruda per avere 6 lati di bark croccante su ogni boccone, circa 4 ore e 30.",
+      "difficulty": "Intermediate", "prep_time": 30, "cook_time": 270,
+      "ingredients": [
+        ["Pancia di maiale senza cotenna", "2 kg"],
+        ["Rub base", "6 cucchiai"],
+        ["Burro a pezzetti (per il braising in teglia)", "60 g"],
+        ["Zucchero di canna (per il braising in teglia)", "4 cucchiai"],
+        ["Miele (per il braising in teglia)", "3 cucchiai"],
+        ["Salsa barbecue (per la laccatura finale)", "150 ml"],
+        ["Succo di mela (per la laccatura finale)", "2 cucchiai"]
+      ],
+      "instructions": [
+        ["Taglia la pancia fredda da frigo a cubi regolari di 3,5 × 3,5 cm e condiscili su tutti i lati con il rub.", 0],
+        ["Disponi i cubi distanziati su una griglietta a maglie strette (così li sposti tutti insieme comodamente) e inserisci la sonda 1 nel cubo centrale.", 0],
+        ["Alla prima pausa, trasferisci i cubi in una vaschetta di alluminio con burro, zucchero di canna e miele, copri ermeticamente con stagnola e rimetti in griglia.", 2],
+        ["Alla seconda pausa, scola eventuale grasso in eccesso, aggiungi la salsa BBQ, mescola e lascia caramellare scoperto per 15 minuti.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 45},
+        {"mode": "Hold", "temp": 120, "timer": 120, "pause": true, "msg": "Il bark sui cubi è formato: mettili in teglia con burro, zucchero di canna e miele, copri con alluminio, rimetti la sonda in un cubo e premi Continua."},
+        {"mode": "Hold", "temp": 135, "probe": 94, "pause": true, "msg": "Cubi tenerissimi: scopri la teglia, aggiungi la salsa BBQ, mescola bene e premi Continua."},
+        {"mode": "Hold", "temp": 135, "timer": 15, "msg": "La laccatura è pronta: servi caldi!"},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-09-Tagliata-Reverse-Sear",
+      "title": "Tagliata di manzo in Reverse Sear",
+      "description": "Controfiletto, Costata o Picanha spessi 4–5 cm (1–1,5 kg), circa 1 ora di affumicatura lenta seguita da scottata violenta su ghisa rovente.",
+      "difficulty": "Intermediate", "prep_time": 10, "cook_time": 60,
+      "ingredients": [
+        ["Controfiletto o Picanha in un pezzo, spessore 4–5 cm", "1–1,5 kg"],
+        ["Rub SPG o sale grosso e pepe nero", "1 cucchiaio ciascuno"],
+        ["Sego di manzo o burro chiarificato per la padella di ghisa, con un rametto di rosmarino", ""]
+      ],
+      "instructions": [
+        ["Sala la carne almeno 2 ore prima (meglio la sera prima in frigo su griglietta, dry brining).", 0],
+        ["Metti sul grill con la sonda 1 al centro e avvia la ricetta.", 0],
+        ["A 48 °C al cuore togli la carne dal Traeger e falla riposare 5 minuti mentre scaldi al massimo una padella di ghisa sul fornello (o su piastra).", 2],
+        ["Scotta in ghisa 90–120 secondi per lato per una crosta Maillard perfetta (finirà a 54 °C al cuore, media-al sangue). Taglia subito a fette contro fibra.", 2]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 25},
+        {"mode": "Hold", "temp": 110, "probe": 48, "pause": true, "msg": "Carne a 48 °C: toglila dal grill e procedi alla scottata su padella di ghisa rovente (90 sec per lato). Premi Continua per spegnere il Traeger."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-10-Salmone-affumicato",
+      "title": "Salmone affumicato a caldo (Filetto Classico)",
+      "description": "Filetto di salmone con pelle da 1 kg, circa 1 ora e 15 di cottura più 3 ore di salamoia a secco bilanciata. Target a 53 °C per evitare la fuoriuscita di albumina bianca e mantenerlo burroso.",
+      "difficulty": "Easy", "prep_time": 20, "cook_time": 75,
+      "ingredients": [
+        ["Filetto di salmone con pelle", "1 kg"],
+        ["Sale grosso (per la salamoia a secco)", "40 g"],
+        ["Zucchero di canna (per la salamoia a secco)", "60 g"],
+        ["Pepe nero, scorza di limone e aneto fresco per servire", ""]
+      ],
+      "instructions": [
+        ["Copri il filetto con il mix di sale e zucchero e lascialo in frigo per 2,5–3 ore.", 0],
+        ["Sciacqua sotto acqua fredda, asciuga benissimo e lascialo in frigo scoperto su una griglietta per 1–2 ore: si formerà la pellicola appiccicosa (pellicle) fondamentale per catturare il fumo.", 0],
+        ["Sul grill con la pelle in basso (su carta forno ritagliata per non far attaccare la pelle alla griglia) e sonda 1 nella parte più spessa.", 0]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 35},
+        {"mode": "Hold", "temp": 105, "probe": 53, "pause": true, "msg": "Salmone a 53 °C: burroso e succoso. Toglilo dal grill e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-11-Pulled-Salmon-Sandwich",
+      "title": "Pulled Salmon Sandwich",
+      "description": "Ricetta GrillExperience – Marco Agostini (brioche di A. Trezzi). Baffa di salmone portata a 98–100 °C in Low & Slow con fase di foil nel brodo di pesce: combina un bark dorato e croccante con una polpa stracotta e cremosa stile baccalà, servita in Brioche Bun all'aneto con North Fisherman's Sauce.",
+      "difficulty": "Intermediate", "prep_time": 40, "cook_time": 150,
+      "ingredients": [
+        ["Salmone: 1 baffa centrale squadrata ad altezza regolare", "1–1,5 kg"],
+        ["Salmone: rub dolce-speziato (tipo Rub456 o Rub base con metà zucchero)", "3 cucchiai"],
+        ["Salmone: brodo di pesce (per il foil)", "3–4 cucchiai"],
+        ["Salmone: pellet di ciliegio e ontano (Cherry & Alder)", ""],
+        ["Salsa: senape dolce", "2 parti"],
+        ["Salsa: brodo di pesce", "1 parte"],
+        ["Salsa: vino bianco", "1 parte"],
+        ["Salsa: panna fresca", "1 parte"],
+        ["Salsa: maizena", "1 cucchiaio ogni 250 ml di salsa"],
+        ["Salsa: sale e pepe di Timut pestato", "q.b."],
+        ["Brioche: farina tipo 2 (W280)", "100% (1 kg)"],
+        ["Brioche: latte intero", "51%"],
+        ["Brioche: burro", "17%"],
+        ["Brioche: uova", "1 uovo + 1 tuorlo"],
+        ["Brioche: zucchero", "5,3%"],
+        ["Brioche: sale", "2,7%"],
+        ["Brioche: lievito di birra fresco (secco 0,3%)", "1%"],
+        ["Brioche: malto diastatico", "0,5%"],
+        ["Brioche: semi di sesamo e aneto disidratato per la copertura", ""]
+      ],
+      "instructions": [
+        ["Salsa: emulsiona a freddo senape, brodo di pesce, vino bianco, panna e maizena con il frullatore a immersione, poi profuma con abbondante pepe di Timut pestato.", 0],
+        ["Salmone: squadra la baffa per avere spessore uniforme. Applica un generoso strato di rub e attendi 15–20 minuti finché non si inumidisce superficialmente.", 0],
+        ["Metti il salmone sul grill: l'obiettivo della prima fase a 125 °C non è la temperatura interna ma costruire un bark ricco, rosso-dorato e croccante grazie al grasso superficiale che frigge le spezie.", 2],
+        ["Quando il bark è croccante (dopo circa 75–90 minuti), trasferisci il salmone in una vaschetta di alluminio con 3–4 cucchiai di brodo di pesce, copri con stagnola, inserisci la sonda 1 e porta fino a 98–100 °C (tempo totale oltre 2 ore).", 3],
+        ["Sfalda il salmone (i pezzi croccanti di bark si uniranno alla polpa cremosa), condisci con la North Fisherman's Sauce e farcisci i buns all'aneto scaldati 2 minuti in griglia.", 4]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 30},
+        {"mode": "Hold", "temp": 125, "timer": 75, "pause": true, "msg": "Controlla il bark sul salmone: quando è ben dorato e croccante, metti la baffa in vaschetta di alluminio con 3 cucchiai di brodo di pesce, chiudi in foil, inserisci la sonda 1 e premi Continua."},
+        {"mode": "Hold", "temp": 125, "probe": 98, "pause": true, "msg": "Il salmone ha raggiunto la consistenza cremosa: sfilaccialo unendo il bark alla polpa, condisci con la salsa alla senape e pepe di Timut e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-12-Smoked-Mac-and-Cheese",
+      "title": "Smoked Mac & Cheese (ai 3 formaggi)",
+      "description": "Il contorno re dell'American BBQ, in teglia di ghisa o alluminio, circa 1 ora e 30. La pasta viene scolata molto al dente così finisce di cuocere assorbendo la salsa al formaggio e il fumo di legna.",
+      "difficulty": "Easy", "prep_time": 30, "cook_time": 90,
+      "ingredients": [
+        ["Pasta formato chifferi (elbow macaroni) o cavatappi", "500 g"],
+        ["Cheddar stagionato grattugiato", "300 g"],
+        ["Gouda (o scamorza) grattugiato", "150 g"],
+        ["Crema di formaggio (tipo Philadelphia)", "150 g"],
+        ["Burro", "60 g"],
+        ["Farina 00", "50 g"],
+        ["Latte intero caldo", "750 ml"],
+        ["Senape in polvere", "1 cucchiaino"],
+        ["Rub base", "2 cucchiai"],
+        ["Pangrattato panko mescolato con 20 g di burro fuso (topping croccante)", "50 g"]
+      ],
+      "instructions": [
+        ["Lessa la pasta in acqua salata per metà del tempo indicato sulla confezione, scolala e mescolala con un filo d'olio.", 0],
+        ["In un pentolino prepara il roux con burro e farina, versa il latte caldo a filo, aggiungi la senape e il Philadelphia, poi spegni il fuoco e sciogli dentro metà del Cheddar e del Gouda.", 0],
+        ["Unisci pasta e salsa in una teglia larga, copri con il resto dei formaggi, il panko imburrato e una spolverata generosa di rub base. Metti sul grill senza sonda.", 0]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 30},
+        {"mode": "Hold", "temp": 135, "timer": 60, "pause": true, "msg": "Il formaggio bolle ai bordi e il panko è dorato e affumicato. Togli la teglia e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-13-Beef-Short-Ribs",
+      "title": "Beef Short Ribs (Dino Ribs)",
+      "description": "Costato di manzo in pezzo unico (taglio Plate a 3 o 4 ossa), 2–2,5 kg, 8–10 ore. Soprannominate \"Brisket on a stick\", sono ancora più succose e marmorizzate del brisket.",
+      "difficulty": "Hard", "prep_time": 20, "cook_time": 540,
+      "ingredients": [
+        ["Costato di manzo intero (3 ossa)", "2–2,5 kg"],
+        ["Salsa Worcestershire o senape (come legante)", "2 cucchiai"],
+        ["Rub SPG (sale grosso, pepe nero 16 mesh, aglio granulare)", "4–5 cucchiai"],
+        ["Brodo di manzo o acqua e aceto di mele per spruzzare", "100 ml"],
+        ["Carta da macellaio (butcher paper)", ""]
+      ],
+      "instructions": [
+        ["Rimuovi tutto il grasso superficiale e la membrana d'argento sopra la carne (lascia invece la membrana sotto le ossa per non farle staccare in cottura). Spalma la Worcestershire e copri di SPG.", 0],
+        ["Metti sul grill con le ossa in basso e la sonda 1 al centro tra due ossa.", 0],
+        ["Spruzza ogni ora dopo le prime 3 ore. Avvolgi in butcher paper a 80 °C e porta fino a circa 96 °C (sonda come nel burro). Riposo di 1 ora in borsa termica prima del taglio.", 2]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 60},
+        {"mode": "Hold", "temp": 120, "probe": 80, "pause": true, "msg": "La carne si è ritirata sulle ossa e il bark è nero: avvolgi in butcher paper, rimetti la sonda e premi Continua."},
+        {"mode": "Hold", "temp": 130, "probe": 96, "pause": true, "msg": "Sonda come nel burro tra le ossa: togli per il riposo di 1 ora e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-14-Over-the-Top-Chili",
+      "title": "Over the Top Chili (OTT Chili)",
+      "description": "Chili texano con carne macinata affumicata sopra la pentola, 3 ore e mezza. La pagnotta di manzo poggia su una griglietta sopra il Dutch Oven scoperto e gocciola tutto il suo grasso affumicato direttamente nella salsa sottostante.",
+      "difficulty": "Intermediate", "prep_time": 30, "cook_time": 210,
+      "ingredients": [
+        ["Carne macinata di manzo (80/20)", "1 kg"],
+        ["Rub base", "3 cucchiai"],
+        ["Polpa di pomodoro", "800 g"],
+        ["Fagioli rossi o neri scolati", "500 g"],
+        ["Cipolla grande", "1"],
+        ["Peperoni o jalapeño tritati", "2"],
+        ["Aglio", "3 spicchi"],
+        ["Brodo di manzo o birra scura", "300 ml"],
+        ["Cumino", "2 cucchiai"],
+        ["Cacao amaro", "1 cucchiaino"],
+        ["Sale e peperoncino calabrese", "q.b."]
+      ],
+      "instructions": [
+        ["Fai soffriggere sul fornello in una pentola di ghisa (Dutch Oven) cipolla, aglio, peperoni e spezie, poi aggiungi pomodoro, fagioli e brodo.", 0],
+        ["Forma una grossa pagnotta compatta e leggermente schiacciata con il macinato e ricoprila interamente di rub.", 0],
+        ["Metti la pentola aperta sul grill, posiziona una griglietta sopra la pentola e appoggiaci sopra la pagnotta di carne con la sonda 1 al centro.", 0]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 45},
+        {"mode": "Hold", "temp": 120, "probe": 65, "pause": true, "msg": "Togli la sonda, sbriciola la pagnotta di carne affumicata direttamente dentro la pentola del chili, mescola bene e premi Continua."},
+        {"mode": "Hold", "temp": 135, "timer": 60, "msg": "Il chili si è ridotto e insaporito: pronto da servire!"},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-15-Jalapeno-Poppers",
+      "title": "Jalapeño Poppers",
+      "description": "Jalapeño freschi tagliati a metà, privati dei semi, farciti con formaggio cremoso, avvolti in bacon croccante e affumicati, circa 1 ora e 15. Uno dei finger food da barbecue più amati al mondo.",
+      "difficulty": "Easy", "prep_time": 30, "cook_time": 75,
+      "ingredients": [
+        ["Jalapeño freschi grandi e sodi", "15–20"],
+        ["Formaggio spalmabile (tipo Philadelphia)", "250 g"],
+        ["Cheddar o formaggio filante grattugiato", "100 g"],
+        ["Rub base o aglio in polvere", "1 cucchiaio"],
+        ["Bacon sottile", "15–20 fette"]
+      ],
+      "instructions": [
+        ["Taglia i jalapeño a metà per il lungo e rimuovi semi e filamenti bianchi con un cucchiaino (usa i guanti!).", 0],
+        ["Mescola il formaggio spalmabile con il Cheddar grattugiato e il rub, quindi riempi ogni metà di jalapeño con il composto.", 0],
+        ["Avvolgi strettamente ogni peperoncino farcito con una fetta di bacon. Mettili su una griglia o supporto per jalapeño. Cottura a tempo senza sonda.", 0]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 30},
+        {"mode": "Hold", "temp": 135, "timer": 45, "pause": true, "msg": "Il bacon è croccante e il formaggio è fuso. Togli i jalapeño e premi Continua."},
+        {"mode": "Shutdown"}
+      ]
+    },
+    {
+      "file": "IT-16-Bacon-Bomb-Explosion",
+      "title": "Bacon Bomb Explosion",
+      "description": "Un capolavoro dell'American BBQ: una trama intrecciata di bacon che racchiude un ripieno succoso di salsiccia speziata, formaggio e peperoni, arrotolata e affumicata, circa 2 ore e mezza.",
+      "difficulty": "Intermediate", "prep_time": 30, "cook_time": 150,
+      "ingredients": [
+        ["Bacon a fette sottili (circa 2 confezioni)", "500 g"],
+        ["Salsiccia fresca senza budello", "800 g"],
+        ["Rub base", "3 cucchiai"],
+        ["Cheddar o scamorza affumicata grattugiata", "150 g"],
+        ["Peperoni sottaceto o jalapeño a pezzetti", "50 g"],
+        ["Salsa barbecue (per la laccatura finale)", "100 ml"]
+      ],
+      "instructions": [
+        ["Crea una griglia intrecciata (lattice) con le fette di bacon su un foglio di carta forno.", 0],
+        ["Stendi la salsiccia macinata sopra il bacon formando un rettangolo uniforme, condiscila con un cucchiaio di rub, copri con il formaggio grattugiato e i peperoni.", 0],
+        ["Aiutandoti con la carta forno, arrotola la bomba ben stretta sigillando i lati, poi cospargi l'esterno con il resto del rub. Metti sul grill con la sonda 1 al centro.", 0],
+        ["Glassa con la salsa BBQ nei 15 minuti finali di cottura.", 3]
+      ],
+      "steps": [
+        {"mode": "Startup"},
+        {"mode": "Smoke", "timer": 45},
+        {"mode": "Hold", "temp": 120, "probe": 70, "pause": true, "msg": "Spennella la salsa BBQ su tutta la superficie della bomba, rimetti la sonda e premi Continua."},
+        {"mode": "Hold", "temp": 135, "probe": 74, "pause": true, "msg": "Bacon bomb cotta e laccata (74 °C al cuore). Togli dal grill, fai riposare 10 minuti e affetta a rondelle. Premi Continua per spegnere."},
+        {"mode": "Shutdown"}
+      ]
+    }
+  ]
+}

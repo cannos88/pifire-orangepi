@@ -36,6 +36,7 @@
 	var state = {
 		cur: null,            // last /api/current
 		data: null,           // last /dash/modern/data
+		dataAt: 0,            // when it arrived (ms)
 		minutes: parseInt(CFG.chart_minutes, 10) || 90,
 		errors: 0,
 		uiHash: null,
@@ -298,6 +299,7 @@
 
 	function panelFor(mode) {
 		if (mode === 'Smoke' || mode === 'Hold') { return 'run'; }
+		if (mode === 'Recipe') { return 'recipe'; }
 		if (['Startup', 'Reignite', 'Shutdown', 'Prime'].indexOf(mode) >= 0) { return 'phase'; }
 		if (['Stop', 'Monitor', 'Error'].indexOf(mode) >= 0) { return 'idle'; }
 		return 'other';
@@ -346,9 +348,63 @@
 				? 'Dopo l’accensione: Mantenimento a ' + fmtTemp(CFG.after_startup_setpoint) + '°'
 				: 'Dopo l’accensione: ' + (MODE_IT[CFG.after_startup_mode] || CFG.after_startup_mode);
 			setText($('idleAfter'), after);
+		} else if (panel === 'recipe') {
+			renderRecipe(st);
 		} else {
-			setText($('otherText'), 'Modalità ' + (MODE_IT[mode] || mode) + ' in corso: si controlla dalla dashboard classica o dalla ricetta.');
+			setText($('otherText'), 'Modalità ' + (MODE_IT[mode] || mode) + ' in corso: si controlla dalla dashboard classica.');
 		}
+	}
+
+	function probeName(label) {
+		for (var i = 0; i < probes.length; i++) {
+			if (probes[i].label === label) { return probes[i].name || label; }
+		}
+		return label;
+	}
+
+	function recipeStepLabel(r) {
+		if (r.mode === 'Hold') { return 'Mantenimento a ' + fmtTemp(r.hold_temp) + '°'; }
+		return MODE_IT[r.mode] || r.mode || '—';
+	}
+
+	function renderRecipe(st) {
+		var r = state.data && state.data.recipe;
+		var waiting = !!st.recipe_paused || !!(r && r.waiting);
+		setText($('recipeTitle'), r && r.title ? 'Ricetta · ' + r.title : 'Ricetta');
+		if (!r) {
+			setText($('recipeStep'), 'Ricetta in corso');
+			setText($('recipeEnd'), '');
+		} else {
+			setText($('recipeStep'), (r.steps ? 'Fase ' + r.step + ' di ' + r.steps + ' · ' : '') + recipeStepLabel(r));
+			var ends = [];
+			var timer = state.data.timer;
+			if (r.timer > 0) {
+				if (timer && timer.state === 'running') {
+					var left = timer.end ? timer.end - (Date.now() / 1000 + state.serverOffset) : timer.remaining;
+					ends.push('tra ' + fmtDuration(left, left < 3600));
+				} else {
+					ends.push('dopo ' + fmtDuration(r.timer * 60));
+				}
+			}
+			Object.keys(r.targets || {}).forEach(function (label) {
+				ends.push(label === primary
+					? 'quando il grill arriva a ' + fmtTemp(r.targets[label]) + '°'
+					: 'quando ' + probeName(label) + ' arriva a ' + fmtTemp(r.targets[label]) + '°');
+			});
+			var end;
+			if (waiting) { end = 'Il grill tiene la temperatura e aspetta te.'; }
+			else if (r.mode === 'Startup') { end = 'La fase finisce con l’accensione.'; }
+			else if (r.mode === 'Shutdown') { end = 'Ultima fase: poi il grill si ferma.'; }
+			else if (ends.length) { end = 'Finisce ' + ends.join(' oppure '); }
+			else { end = ''; }
+			if (!waiting && r.next_mode) { end += (end ? ' · ' : '') + 'Poi: ' + recipeStepLabel({mode: r.next_mode, hold_temp: r.next_hold}); }
+			setText($('recipeEnd'), end);
+		}
+		var msg = r && r.message;
+		show($('recipeMsg'), waiting && !!msg);
+		setText($('recipeMsg'), waiting && msg ? msg : '');
+		show($('recipeContinue'), waiting);
+		show($('recipeNext'), !waiting);
 	}
 
 	function renderProbes() {
@@ -597,9 +653,11 @@
 				return;
 			}
 			var prevMode = state.cur ? state.cur.status.mode : null;
+			var prevPaused = state.cur ? !!state.cur.status.recipe_paused : false;
 			state.cur = cur;
 			render();
-			if (prevMode && prevMode !== cur.status.mode) { loadData(); }
+			if ((prevMode && prevMode !== cur.status.mode) || prevPaused !== !!cur.status.recipe_paused) { loadData(); }
+			else if (cur.status.mode === 'Recipe' && Date.now() - state.dataAt > 5000) { loadData(); }
 		}).catch(function () {
 			state.errors += 1;
 			if (state.cur) { renderStrip(); }
@@ -615,10 +673,11 @@
 			}
 			if (d.timer.state !== 'idle') { state.timerDoneAt = 0; }
 			state.data = d;
+			state.dataAt = Date.now();
 			if (typeof d.mqtt === 'boolean') { CFG.mqtt = d.mqtt; }
 			renderChart();
 			renderTimer();
-			if (state.cur) { renderStatus(); }
+			if (state.cur) { renderStatus(); renderControl(); }
 		}).catch(function () {});
 	}
 
@@ -692,6 +751,12 @@
 					'Accendi').then(function (ok) { if (ok) { api('mode/startup').then(loadCurrent).catch(function () {}); } });
 			} else if (action === 'monitor') {
 				api('mode/monitor').then(loadCurrent).catch(function () {});
+			} else if (action === 'recipe-continue') {
+				api('recipe/continue').then(function () { toast('Si riparte'); loadCurrent(); loadData(); }).catch(function () {});
+			} else if (action === 'recipe-next') {
+				confirmAction('Passare alla fase successiva?',
+					'La fase in corso finisce subito e il programma della ricetta va avanti.',
+					'Avanti').then(function (ok) { if (ok) { api('recipe/next').then(function () { loadCurrent(); loadData(); }).catch(function () {}); } });
 			}
 		});
 
@@ -798,6 +863,6 @@
 	setInterval(function () {
 		if (document.hidden) { return; }
 		renderTimer();
-		if (state.cur) { renderGrill(); renderStrip(); if (panelFor(state.cur.status.mode) === 'phase') { renderControl(); } }
+		if (state.cur) { renderGrill(); renderStrip(); if (['phase', 'recipe'].indexOf(panelFor(state.cur.status.mode)) >= 0) { renderControl(); } }
 	}, 1000);
 })();

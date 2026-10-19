@@ -19,6 +19,7 @@ Controller smart per barbecue a pellet, derivato da [PiFire](https://github.com/
 | **Fiamma spenta** | Rilevatore di fiamma spenta in Mantenimento: riduce il pellet appena sospetta lo spegnimento e avvia la riaccensione prima che il braciere si riempia di pellet crudo. Distingue il coperchio aperto. |
 | **Home Assistant** | Comandi via MQTT (modalità, temperatura, Smoke+) con regole di sicurezza; l'accensione da remoto è disattivata di default. |
 | **Web app** | Dashboard *Moderna* e tema scuro *Ember* per tutte le pagine, utilizzabili anche senza internet. |
+| **Ricette** | 16 ricette in italiano in °C tarate sul Pro 22, con il programma del grill fase per fase; la dashboard mostra la fase in corso e il pulsante *Continua* quando una fase aspetta te. |
 | **Wi-Fi** | Rete di emergenza aperta *PiFire-Setup* quando il grill non trova il Wi-Fi: ti colleghi col telefono e scegli la rete nuova. Pagina Wi-Fi per aggiungere reti prima di cambiare la password del router. |
 | **Correzioni** | In °C il target di una sonda finiva sulla temperatura del grill; due comandi ravvicinati si annullavano a vicenda; ricerca WLED e caricamento delle cotture non funzionavano; i controller ML e Fuzzy non aggiornavano la temperatura precedente. |
 | **Sicurezza web** | Chiuse falle della web app originale (comandi di shell e percorsi di file presi dalle richieste), web app raggiungibile solo tramite nginx, librerie alle ultime versioni (senza eventlet né scikit-learn, ormai abbandonati) e bloccate alla versione rilasciata, controllo settimanale delle vulnerabilità. |

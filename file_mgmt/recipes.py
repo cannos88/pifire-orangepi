@@ -199,10 +199,25 @@ def read_recipefile(filename):
 	return(file_data, status)
 
 def convert_recipe_units(recipe, units):
-    for index, step in enumerate(recipe['steps']):
-        for probe, settemp in step['settemps']:
-            recipe['steps'][index]['settemps'][probe] = 0 if settemp == 0 else convert_temp(units, settemp)
-        recipe['steps'][index]['hold_temp'] = 0 if step['hold_temp'] == 0 else convert_temp(units, step['hold_temp'])
+    '''
+    Convert the temperatures of a recipe to the grill's units ('C' or 'F').
+    Orange Pi fork: upstream read a 'settemps' key that recipes do not have, so
+    any recipe in the other unit (e.g. the bundled °F ones on a °C grill) stopped
+    with KeyError; it also left the probe and grill triggers unconverted.
+    0 means "not set" and stays 0.  Rounded, not truncated (165 °F -> 74 °C).
+    '''
+    def _conv(value):
+        if not value:
+            return 0
+        return round(value * 9 / 5 + 32) if units == 'F' else round((value - 32) * 5 / 9)
+
+    for step in recipe['steps']:
+        step['hold_temp'] = _conv(step.get('hold_temp', 0))
+        triggers = step.get('trigger_temps', {})
+        if 'primary' in triggers:
+            triggers['primary'] = _conv(triggers['primary'])
+        if 'food' in triggers:
+            triggers['food'] = [_conv(value) for value in triggers['food']]
     return(recipe)
 
 def get_recipefilelist(folder=None):
